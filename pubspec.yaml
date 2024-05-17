@@ -63,7 +63,7 @@ dependencies:
   znn_sdk_dart: 
     git: 
       url: https://github.com/drblazer21/znn_sdk_dart/
-      ref: 243eec3290dbf5f7483e67154f573daa089cb811
+      ref: 34d441b6af409c99e133ac38c9a3154a026d2a63
 
 dev_dependencies: 
   build_runner: ^2.4.6
