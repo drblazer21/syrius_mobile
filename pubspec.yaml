@@ -60,10 +60,10 @@ dependencies:
   url_launcher: ^6.0.20
   wallet_connect_uri_validator: ^0.1.0
   walletconnect_flutter_v2: ^2.1.11
-  znn_sdk_dart: 
+  znn_sdk_dart:
     git: 
       url: https://github.com/drblazer21/znn_sdk_dart/
-      ref: 34d441b6af409c99e133ac38c9a3154a026d2a63
+      ref: a7eddd68b9b40077d5038fe17a2747252369cc32
 
 dev_dependencies: 
   build_runner: ^2.4.6
