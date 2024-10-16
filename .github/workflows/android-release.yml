@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - cicd
+  workflow_dispatch:
 
 jobs:
   build:
