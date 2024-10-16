@@ -41,10 +41,6 @@ class _ImportWalletPasswordScreenState extends State<ImportWalletScreen> {
       _recommendedMnemonicWords =
           enWordlist.where((e) => e.startsWith(_mnemonicWord)).toList();
 
-      final set1 = Set.from(_recommendedMnemonicWords);
-      final set2 = Set.from(_words);
-
-      _recommendedMnemonicWords = List.from(set1.difference(set2));
       if (_mnemonicWord.isEmpty) {
         _recommendedMnemonicWords.clear();
       }
@@ -293,9 +289,12 @@ class _ImportWalletPasswordScreenState extends State<ImportWalletScreen> {
     final String entropy = keyStore.entropy;
 
     await saveEntropy(entropy).then(
-      (value) => showCreatePincodeScreen(
-        context: context,
-      ),
+      (value) {
+        if (!mounted) return;
+        showCreatePincodeScreen(
+          context: context,
+        );
+      },
     );
   }
 

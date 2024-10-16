@@ -3,10 +3,9 @@ import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/utils/constants.dart';
 
 class ScreenshotFeatureNotifier extends ChangeNotifier {
-  bool _isEnabled = sharedPrefsService.get<bool>(
+  bool _isEnabled = sharedPrefs.getBool(
     kIsScreenshotFeatureEnabledKey,
-    defaultValue: false,
-  )!;
+  ) ?? false;
 
   bool get isEnabled => _isEnabled;
 

@@ -12,7 +12,7 @@ class PlasmaListBloc extends InfiniteScrollBloc<FusionEntry> {
   Future<List<FusionEntry>> getData(int pageKey, int pageSize) async {
     final List<FusionEntry> results =
         (await zenon.embedded.plasma.getEntriesByAddress(
-      Address.parse(kSelectedAddress!),
+      Address.parse(kSelectedAddress!.hex),
       pageIndex: pageKey,
       pageSize: pageSize,
     ))

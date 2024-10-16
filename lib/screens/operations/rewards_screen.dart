@@ -32,15 +32,6 @@ class _RewardsScreenState extends State<RewardsScreen> {
           PageCard(
             type: PageCardType.rewardsDelegate,
           ),
-          PageCard(
-            type: PageCardType.acceleratorProjectList,
-          ),
-          PageCard(
-            type: PageCardType.acceleratorCreateProject,
-          ),
-          PageCard(
-            type: PageCardType.acceleratorDonate,
-          ),
         ].addSeparator(kVerticalSpacer),
       ),
     );

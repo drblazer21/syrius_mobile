@@ -30,20 +30,15 @@ class SettingScreen extends StatelessWidget {
               ?.copyWith(color: znnColor, fontWeight: FontWeight.bold),
         ),
       ),
-      SettingsListItem(
-        image: 'settings/node_management',
-        title: AppLocalizations.of(context)!.nodeManagement,
-        onTap: () => showNodeManagementScreen(
-          context,
+      if (kSelectedAppNetworkWithAssets!
+          .network.blockChain.isSupportedByWalletConnect)
+        SettingsListItem(
+          image: 'settings/wallet_connect',
+          title: AppLocalizations.of(context)!.walletConnectTitle,
+          onTap: () {
+            showWalletConnectScreen(context);
+          },
         ),
-      ),
-      SettingsListItem(
-        image: 'settings/wallet_connect',
-        title: AppLocalizations.of(context)!.walletConnectTitle,
-        onTap: () {
-          showWalletConnectScreen(context);
-        },
-      ),
       SettingsListItem(
         image: 'settings/update',
         title: AppLocalizations.of(context)!.update,
@@ -61,10 +56,10 @@ class SettingScreen extends StatelessWidget {
             context: context,
             onSuccess: (_) {
               Navigator.pop(context);
-              final bool shouldCheckForOtp = sharedPrefsService.get(
-                kUseOtpForDeletingWalletKey,
-                defaultValue: false,
-              )!;
+              final bool shouldCheckForOtp = sharedPrefs.getBool(
+                    kUseOtpForDeletingWalletKey,
+                  ) ??
+                  false;
               if (shouldCheckForOtp) {
                 showOtpCodeConfirmationScreen(
                   context: context,
@@ -96,10 +91,10 @@ class SettingScreen extends StatelessWidget {
             context: context,
             onSuccess: (_) {
               Navigator.pop(context);
-              final bool shouldCheckForOtp = sharedPrefsService.get(
-                kUseOtpForRevealingSeedKey,
-                defaultValue: false,
-              )!;
+              final bool shouldCheckForOtp = sharedPrefs.getBool(
+                    kUseOtpForRevealingSeedKey,
+                  ) ??
+                  false;
               if (shouldCheckForOtp) {
                 showOtpCodeConfirmationScreen(
                   context: context,
@@ -126,10 +121,10 @@ class SettingScreen extends StatelessWidget {
             context: context,
             onSuccess: (pin) {
               Navigator.pop(context);
-              final bool shouldCheckForOtp = sharedPrefsService.get(
-                kUseOtpForModifyingBiometryUseKey,
-                defaultValue: false,
-              )!;
+              final bool shouldCheckForOtp = sharedPrefs.getBool(
+                    kUseOtpForModifyingBiometryUseKey,
+                  ) ??
+                  false;
               if (shouldCheckForOtp) {
                 showOtpCodeConfirmationScreen(
                   context: context,
@@ -153,10 +148,10 @@ class SettingScreen extends StatelessWidget {
             context: context,
             onSuccess: (_) {
               Navigator.pop(context);
-              final bool shouldCheckForOtp = sharedPrefsService.get(
-                kWasOtpSecretKeyStoredKey,
-                defaultValue: false,
-              )!;
+              final bool shouldCheckForOtp = sharedPrefs.getBool(
+                    kWasOtpSecretKeyStoredKey,
+                  ) ??
+                  false;
               if (shouldCheckForOtp) {
                 showOtpCodeConfirmationScreen(
                   context: context,
@@ -198,7 +193,7 @@ class SettingScreen extends StatelessWidget {
         ),
         title: 'ZenonHub Explorer',
         onTap: () {
-          launchUrl('$kZenonHubExplorer/explorer');
+          launchUrl('$kZenonMainnetExplorer/explorer');
         },
       ),
       SettingsListItem(
@@ -316,16 +311,6 @@ class SettingScreen extends StatelessWidget {
         ),
       ),
       SettingsListItem(
-        image: 'settings/terms_of_use',
-        title: AppLocalizations.of(context)!.termsOfServiceSettingsButton,
-        onTap: () {},
-      ),
-      SettingsListItem(
-        image: 'settings/privacy_policy',
-        title: AppLocalizations.of(context)!.privacyPolicySettingsButton,
-        onTap: () {},
-      ),
-      SettingsListItem(
         imageWidget: Icon(
           Icons.info,
           color: context.colorScheme.onPrimaryContainer,
@@ -334,6 +319,16 @@ class SettingScreen extends StatelessWidget {
         onTap: () {
           showInfoScreen(context: context);
         },
+      ),
+      SettingsListItem(
+        image: 'settings/terms_of_use',
+        title: AppLocalizations.of(context)!.termsOfServiceSettingsButton,
+        onTap: () {},
+      ),
+      SettingsListItem(
+        image: 'settings/privacy_policy',
+        title: AppLocalizations.of(context)!.privacyPolicySettingsButton,
+        onTap: () {},
       ),
     ];
   }

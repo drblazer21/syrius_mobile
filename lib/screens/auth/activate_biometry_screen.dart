@@ -61,10 +61,9 @@ class _ActivateBiometryScreenState extends State<ActivateBiometryScreen> {
   }
 
   bool _getSavedEncryptWalletWithBiometryValue() {
-    return sharedPrefsService.get<bool>(
+    return sharedPrefs.getBool(
       kEncryptWalletWithBiometryKey,
-      defaultValue: true,
-    )!;
+    ) ?? true;
   }
 
   Widget _buildEncryptedWalletWithBiometryOption() {
@@ -180,7 +179,7 @@ class _ActivateBiometryScreenState extends State<ActivateBiometryScreen> {
       );
 
   Future<void> _saveEncryptWalletWithBiometryValue() {
-    return sharedPrefsService.put(
+    return sharedPrefs.setBool(
       kEncryptWalletWithBiometryKey,
       _encryptWalletWithBiometry,
     );

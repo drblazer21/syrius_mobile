@@ -1,7 +1,7 @@
 import 'package:syrius_mobile/blocs/blocs.dart';
+import 'package:syrius_mobile/database/database.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/model/model.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 
@@ -21,7 +21,7 @@ class PlasmaOptionsBloc extends BaseBloc<AccountBlockTemplate?> {
       ).then(
         (response) {
           _sendSuccessPlasmaNotification(
-            amount: amount.addDecimals(coinDecimals),
+            amount: amount.toStringWithDecimals(coinDecimals),
             beneficiary: beneficiaryAddress,
           );
           refreshBalanceAndTx();
@@ -41,13 +41,14 @@ class PlasmaOptionsBloc extends BaseBloc<AccountBlockTemplate?> {
     required String amount,
     required String beneficiary,
   }) {
-    sl.get<NotificationsBloc>().addNotification(
-          WalletNotification(
+    final String beneficiaryLabel = getLabel(beneficiary);
+
+    sl.get<NotificationsService>().addNotification(
+          WalletNotificationsCompanion.insert(
             title: 'Fused $amount ${kQsrCoin.symbol} '
-                'for ${getLabel(beneficiary)}',
-            timestamp: DateTime.now().millisecondsSinceEpoch,
+                'for $beneficiaryLabel',
             details: 'Fused $amount ${kQsrCoin.symbol} '
-                'for ${getLabel(beneficiary)} from ${getLabel(kSelectedAddress!)}',
+                'for $beneficiaryLabel from ${kSelectedAddress!.label}',
             type: NotificationType.plasmaSuccess,
           ),
         );

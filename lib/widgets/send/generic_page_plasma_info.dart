@@ -53,7 +53,7 @@ class _GenericPagePlasmaInfoState extends State<GenericPagePlasmaInfo> {
     List<PlasmaInfoWrapper> plasmaInfoWrapperList,
   ) =>
       plasmaInfoWrapperList.firstWhere(
-        (plasmaInfoWrapper) => plasmaInfoWrapper.address == kSelectedAddress!,
+        (plasmaInfoWrapper) => plasmaInfoWrapper.address == kSelectedAddress!.hex,
       );
 
   Column _getBody(BuildContext context, PlasmaInfoWrapper plasmaInfoWrapper) {
@@ -161,7 +161,7 @@ class _GenericPagePlasmaInfoState extends State<GenericPagePlasmaInfo> {
               right: 15.0,
               child: Icon(
                 Icons.chevron_right_rounded,
-                color: context.colorScheme.onBackground,
+                color: context.colorScheme.onSurface,
               ),
             ),
           ],

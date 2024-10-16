@@ -1,13 +1,13 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
-import 'package:syrius_mobile/widgets/reusable_widgets/buttons/explorer_button.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 
-class ActivityItem extends StatelessWidget {
+class ActivityItem extends StatefulWidget {
   final AccountBlock accountBlock;
 
   const ActivityItem({
@@ -15,18 +15,31 @@ class ActivityItem extends StatelessWidget {
     required this.accountBlock,
   });
 
-  static Color _iconColor = Colors.transparent;
-  static Color _backgroundColor = Colors.transparent;
+  @override
+  State<ActivityItem> createState() => _ActivityItemState();
+}
+
+class _ActivityItemState extends State<ActivityItem> {
+  LongPressGestureRecognizer? _longPressRecognizer;
+  Color _iconColor = Colors.transparent;
+  Color _backgroundColor = Colors.transparent;
+
+  @override
+  void dispose() {
+    _longPressRecognizer!.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final bool isReceiveBlock =
-        BlockUtils.isReceiveBlock(accountBlock.blockType);
+        BlockUtils.isReceiveBlock(widget.accountBlock.blockType);
 
-    final AccountBlock pairedBlock =
-        isReceiveBlock ? accountBlock.pairedAccountBlock! : accountBlock;
+    final AccountBlock pairedBlock = isReceiveBlock
+        ? widget.accountBlock.pairedAccountBlock!
+        : widget.accountBlock;
     final Address address =
-        isReceiveBlock ? pairedBlock.address : accountBlock.toAddress;
+        isReceiveBlock ? pairedBlock.address : widget.accountBlock.toAddress;
     final AccountBlockConfirmationDetail? confirmationDetail =
         pairedBlock.confirmationDetail;
 
@@ -38,9 +51,9 @@ class ActivityItem extends StatelessWidget {
           child: _buildTransactionHeader(context, confirmationDetail),
         ),
         ListTile(
-          leading: _buildLeading(accountBlock, pairedBlock),
-          subtitle: _buildSubtitle(address, context, accountBlock),
-          title: _buildTitle(accountBlock, context),
+          leading: _buildLeading(widget.accountBlock, pairedBlock),
+          subtitle: _buildSubtitle(address, context, widget.accountBlock),
+          title: _buildTitle(widget.accountBlock, context),
           trailing: _buildTrailing(
             address: address,
             pairedBlock: pairedBlock,
@@ -188,7 +201,7 @@ class ActivityItem extends StatelessWidget {
   }
 
   Widget _buildLaunchExplorerButton(Hash hash) {
-    return ExplorerButton(
+    return ZnnExplorerButton(
       hash: hash.toString(),
       iconColor: _iconColor,
     );
@@ -203,13 +216,13 @@ class ActivityItem extends StatelessWidget {
       children: [
         _buildLaunchExplorerButton(pairedBlock.hash),
         Tooltip(
-          message: pairedBlock.amount.addDecimals(
+          message: pairedBlock.amount.toStringWithDecimals(
             pairedBlock.token?.decimals ?? 0,
           ),
           child: Text(
             '${NumberFormat.compact().format(
               pairedBlock.amount
-                  .addDecimals(pairedBlock.token?.decimals ?? 0)
+                  .toStringWithDecimals(pairedBlock.token?.decimals ?? 0)
                   .toNum(),
             )}  ${pairedBlock.token?.symbol}',
           ),
@@ -225,6 +238,9 @@ class ActivityItem extends StatelessWidget {
   }) {
     final String prefix = _getTxDescriptionSubtitlePrefix(context, block);
 
+    _longPressRecognizer ??= LongPressGestureRecognizer()
+      ..onLongPress = () => _handlePress(data: address.toString());
+
     return RichText(
       text: TextSpan(
         style: context.defaultListTileSubtitleStyle,
@@ -239,6 +255,10 @@ class ActivityItem extends StatelessWidget {
             ),
           ),
           TextSpan(
+            recognizer: _longPressRecognizer,
+            style: const TextStyle(
+              color: znnColor,
+            ),
             text: shortenWalletAddress(address.toString()),
           ),
         ],
@@ -265,5 +285,10 @@ class ActivityItem extends StatelessWidget {
     } else {
       return AppLocalizations.of(context)!.beneficiaryAddress;
     }
+  }
+
+  void _handlePress({required String data}) {
+    HapticFeedback.vibrate();
+    copyToClipboard(data: data);
   }
 }

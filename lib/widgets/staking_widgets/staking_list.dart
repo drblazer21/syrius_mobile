@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:stacked/stacked.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
@@ -51,6 +49,33 @@ class StakingListItem extends StatefulWidget {
 
 class _StakingListItemState extends State<StakingListItem> {
   final List<String> _stakeItemsToBeDeleted = [];
+  final CancelStakeBloc _cancelStakeBloc = CancelStakeBloc();
+
+
+  @override
+  void initState() {
+    super.initState();
+    _cancelStakeBloc.stream.listen(
+          (event) {
+        if (event != null) {
+          widget.bloc.refreshResults();
+          setState(() {
+            _stakeItemsToBeDeleted.remove(widget.stakeEntry.id.toString());
+          });
+        }
+      },
+      onError: (error) {
+        setState(() {
+          _stakeItemsToBeDeleted.remove(widget.stakeEntry.id.toString());
+        });
+        if (!mounted) return;
+        sendNotificationError(
+          AppLocalizations.of(context)!.stakingCancellationError,
+          error,
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -111,45 +136,11 @@ class _StakingListItemState extends State<StakingListItem> {
         },
       );
     } else {
-      return _getCancelButtonViewModel(
-        widget.bloc,
+      return _getCancelButton(
+        _cancelStakeBloc,
         stakeEntry.id.toString(),
       );
     }
-  }
-
-  ViewModelBuilder<CancelStakeBloc> _getCancelButtonViewModel(
-    StakingListBloc bloc,
-    String stakeHash,
-  ) {
-    return ViewModelBuilder<CancelStakeBloc>.reactive(
-      onViewModelReady: (model) {
-        model.stream.listen(
-          (event) {
-            if (event != null) {
-              bloc.refreshResults();
-              setState(() {
-                _stakeItemsToBeDeleted.remove(stakeHash);
-              });
-            }
-          },
-          onError: (error) {
-            setState(() {
-              _stakeItemsToBeDeleted.remove(stakeHash);
-            });
-            sendNotificationError(
-              AppLocalizations.of(context)!.stakingCancellationError,
-              error,
-            );
-          },
-        );
-      },
-      builder: (_, model, __) => _getCancelButton(
-        model,
-        stakeHash,
-      ),
-      viewModelBuilder: () => CancelStakeBloc(),
-    );
   }
 
   Widget _getCancelButton(
@@ -176,7 +167,7 @@ class _StakingListItemState extends State<StakingListItem> {
 
   Widget _buildStakeAmount(StakeEntry item) {
     return Text(
-      'Staking ${item.amount.addDecimals(
+      'Staking ${item.amount.toStringWithDecimals(
         kZnnCoin.decimals,
       )} ${kZnnCoin.symbol}',
     );
@@ -216,7 +207,7 @@ class _StakingListItemState extends State<StakingListItem> {
       child: SvgPicture.asset(
         getSvgImagePath('staked'),
         colorFilter: ColorFilter.mode(
-          context.colorScheme.onBackground,
+          context.colorScheme.onSurface,
           BlendMode.srcIn,
         ),
         height: 20.0,

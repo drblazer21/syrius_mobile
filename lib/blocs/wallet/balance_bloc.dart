@@ -1,40 +1,46 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
+import 'package:syrius_mobile/database/export.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 
-class BalanceBloc extends BaseBloc<Map<String, AccountInfo>?>
-    with RefreshBlocMixin {
+class BalanceBloc extends BaseBloc<AccountInfo> with RefreshBlocMixin {
   BalanceBloc() {
-    listenToWsRestart(getForAllAddresses);
+    listenToWsRestart(() => get());
   }
 
-  Future<void> getForAllAddresses() async {
+  Future<void> get([AppAddress? appAddress]) async {
     try {
-      final Map<String, AccountInfo> addressBalanceMap = {};
-      final List<AccountInfo> accountInfoList = await Future.wait(
-        kDefaultAddressList.map(
-          (address) => _getBalancePerAddress(
-            address,
-          ),
-        ),
+      final AccountInfo accountInfo = await _getBalancePerAddress(
+        appAddress ?? kSelectedAddress!,
       );
-      for (final accountInfo in accountInfoList) {
-        addressBalanceMap[accountInfo.address!] = accountInfo;
+      final List<BalanceInfoListItem> items = accountInfo.balanceInfoList!;
+
+      if (accountInfo.findTokenByTokenStandard(kZnnCoin.tokenStandard) == null) {
+        items.add(
+          BalanceInfoListItem(token: kZnnCoin, balance: BigInt.zero),
+        );
       }
-      addEvent(addressBalanceMap);
+
+      if (accountInfo.findTokenByTokenStandard(kQsrCoin.tokenStandard) == null) {
+        items.add(
+          BalanceInfoListItem(token: kQsrCoin, balance: BigInt.zero),
+        );
+      }
+
+      accountInfo.balanceInfoList = items;
+
+      addEvent(accountInfo);
     } catch (e) {
       addError(e);
     }
   }
 
-  Future<AccountInfo> _getBalancePerAddress(String addressString) async {
-    final Address address = await compute(Address.parse, addressString);
+  Future<AccountInfo> _getBalancePerAddress(AppAddress address) async {
     return zenon.ledger.getAccountInfoByAddress(
-      address,
+      address.toZnnAddress(),
     );
   }
 }

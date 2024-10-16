@@ -13,7 +13,7 @@ class ScrollBarListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RawScrollbar(
-      thumbColor: context.colorScheme.onBackground,
+      thumbColor: context.colorScheme.onSurface,
       radius: const Radius.circular(20),
       thickness: 3,
       controller: scrollController,

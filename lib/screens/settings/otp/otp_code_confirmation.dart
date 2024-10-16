@@ -33,7 +33,6 @@ class _OtpCodeConfirmationState extends State<OtpCodeConfirmation> {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         kVerticalSpacer,
         _buildCodeInputField(),
@@ -73,9 +72,9 @@ class _OtpCodeConfirmationState extends State<OtpCodeConfirmation> {
   }
 
   String? _minimumLengthValidator(String? value) {
-    return minimumLength(
+    return fixedLength(
       invalidErrorText: AppLocalizations.of(context)!.optCodeRequirement,
-      minimumLength: 6,
+      fixedLength: 6,
       value: value,
       nullErrorText: AppLocalizations.of(context)!.optCodeValidation,
     );

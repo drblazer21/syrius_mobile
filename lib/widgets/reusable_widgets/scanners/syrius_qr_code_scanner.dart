@@ -5,16 +5,22 @@ class SyriusQrCodeScanner extends AiBarcodeScanner {
   SyriusQrCodeScanner({
     required BuildContext context,
     required void Function(String) onScan,
-    required bool Function(String) super.validator,
+    required bool Function(BarcodeCapture) super.validator,
     super.key,
   }) : super(
-          canPop: false,
           controller: MobileScannerController(
             detectionTimeoutMs: 1000,
           ),
-          onScan: (value) {
+          bottomSheetBuilder: (_, __) => const SizedBox.shrink(),
+          onDetect: (value) {
             Navigator.pop(context);
-            onScan(value);
+            for (final barcode in value.barcodes) {
+              final String? displayValue = barcode.displayValue;
+              if (displayValue != null) {
+                onScan(displayValue);
+                break;
+              }
+            }
           },
         );
 }

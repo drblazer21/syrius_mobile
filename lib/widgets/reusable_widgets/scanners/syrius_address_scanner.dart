@@ -1,5 +1,5 @@
+import 'package:syrius_mobile/utils/input_validators.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
-import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 
 class SyriusAddressScanner extends SyriusQrCodeScanner {
   SyriusAddressScanner({
@@ -7,6 +7,15 @@ class SyriusAddressScanner extends SyriusQrCodeScanner {
     required super.onScan,
     super.key,
   }) : super(
-          validator: Address.isValid,
+          validator: (value) {
+            for (final barcode in value.barcodes) {
+              final String? displayValue = barcode.displayValue;
+              if (displayValue != null && checkAddress(displayValue) == null) {
+                return true;
+              }
+            }
+
+            return false;
+          },
         );
 }

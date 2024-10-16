@@ -35,6 +35,7 @@ class RecipientAddressTextField extends StatelessWidget {
         ),
         focusNode: focusNode,
         onSubmitted: onSubmitted,
+        textInputAction: TextInputAction.done,
       ),
     );
   }

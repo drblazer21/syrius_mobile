@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:syrius_mobile/utils/misc_utils.dart';
 import 'package:syrius_mobile/widgets/reusable_widgets/address_avatar.dart';
 import 'package:syrius_mobile/widgets/reusable_widgets/svg_clipper.dart';
@@ -40,7 +40,7 @@ class _ShapeToggleWidgetState extends State<ShapeToggleWidget> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onLongPress: () {
-        Vibrate.feedback(FeedbackType.medium);
+        HapticFeedback.mediumImpact();
         setState(() {
           showSvg = !showSvg;
         });
@@ -63,7 +63,7 @@ class _ShapeToggleWidgetState extends State<ShapeToggleWidget> {
                 ),
                 child: AddressAvatar(
                   dimension: 90.0,
-                  baseString: getAddress(),
+                  baseString: selectedAddress.hex,
                 ),
               ),
       ),

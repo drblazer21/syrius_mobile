@@ -1,18 +1,24 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
+import 'package:syrius_mobile/database/export.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/model/model.dart';
 import 'package:syrius_mobile/services/services.dart';
 import 'package:syrius_mobile/utils/utils.dart';
+import 'package:syrius_mobile/utils/wallet_connect/chain_metadata.dart';
+import 'package:syrius_mobile/utils/wallet_connect/connection_widget_builder.dart';
+import 'package:syrius_mobile/utils/wallet_connect/eip155_supported_methods.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
-import 'package:walletconnect_flutter_v2/walletconnect_flutter_v2.dart';
-import 'package:znn_sdk_dart/znn_sdk_dart.dart';
+import 'package:walletconnect_flutter_v2/walletconnect_flutter_v2.dart'
+    hide Level, Logger;
 
 class Web3WalletService extends IWeb3WalletService {
-  late Web3Wallet? _wcClient;
+  late Web3Wallet? _web3Wallet;
 
   /// The list of requests from the dapp
   /// Potential types include, but aren't limited to:
@@ -29,9 +35,9 @@ class Web3WalletService extends IWeb3WalletService {
   final List<int> _idSessionsApproved = [];
 
   @override
-  void create() {
+  Future<void> create() async {
     if (kWcProjectId.isNotEmpty) {
-      _wcClient = Web3Wallet(
+      _web3Wallet = Web3Wallet(
         core: Core(
           projectId: kWcProjectId,
         ),
@@ -46,28 +52,28 @@ class Web3WalletService extends IWeb3WalletService {
       );
 
       // Setup our listeners
-      _wcClient!.core.relayClient.onRelayClientConnect
+      _web3Wallet!.core.relayClient.onRelayClientConnect
           .subscribe(_onRelayClientConnect);
-      _wcClient!.core.relayClient.onRelayClientDisconnect
+      _web3Wallet!.core.relayClient.onRelayClientDisconnect
           .subscribe(_onRelayClientDisconnect);
-      _wcClient!.core.relayClient.onRelayClientError
+      _web3Wallet!.core.relayClient.onRelayClientError
           .subscribe(_onRelayClientError);
 
-      _wcClient!.core.pairing.onPairingCreate.subscribe(_onPairingCreate);
-      _wcClient!.core.pairing.onPairingActivate.subscribe(_onPairingActivate);
-      _wcClient!.core.pairing.onPairingPing.subscribe(_onPairingPing);
-      _wcClient!.core.pairing.onPairingInvalid.subscribe(_onPairingInvalid);
-      _wcClient!.core.pairing.onPairingDelete.subscribe(_onPairingDelete);
+      _web3Wallet!.core.pairing.onPairingCreate.subscribe(_onPairingCreate);
+      _web3Wallet!.core.pairing.onPairingActivate.subscribe(_onPairingActivate);
+      _web3Wallet!.core.pairing.onPairingPing.subscribe(_onPairingPing);
+      _web3Wallet!.core.pairing.onPairingInvalid.subscribe(_onPairingInvalid);
+      _web3Wallet!.core.pairing.onPairingDelete.subscribe(_onPairingDelete);
 
-      _wcClient!.pairings.onSync.subscribe(_onPairingsSync);
-      _wcClient!.sessions.onSync.subscribe(_onSessionsSync);
+      _web3Wallet!.pairings.onSync.subscribe(_onPairingsSync);
+      _web3Wallet!.sessions.onSync.subscribe(_onSessionsSync);
 
-      _wcClient!.onSessionProposal.subscribe(_onSessionProposal);
-      _wcClient!.onSessionConnect.subscribe(_onSessionConnect);
-      _wcClient!.onSessionRequest.subscribe(_onSessionRequest);
-      _wcClient!.onSessionProposalError.subscribe(_onSessionProposalError);
-      _wcClient!.onSessionDelete.subscribe(_onSessionDelete);
-      // _wcClient!.onAuthRequest.subscribe(_onAuthRequest);
+      _web3Wallet!.onSessionProposal.subscribe(_onSessionProposal);
+      _web3Wallet!.onSessionConnect.subscribe(_onSessionConnect);
+      _web3Wallet!.onSessionProposalError.subscribe(_onSessionProposalError);
+      _web3Wallet!.onSessionDelete.subscribe(_onSessionDelete);
+      _web3Wallet!.onSessionAuthRequest.subscribe(_onSessionAuthRequest);
+      _web3Wallet!.onAuthRequest.subscribe(_onAuthRequest);
     } else {
       Logger('WalletConnectService').log(Level.INFO, 'kWcProjectId missing');
     }
@@ -77,37 +83,37 @@ class Web3WalletService extends IWeb3WalletService {
   Future<void> init() async {
     // Await the initialization of the web3wallet
     Logger('WalletConnectService').log(Level.INFO, 'initialization');
-    await _wcClient!.init();
+    await _web3Wallet!.init();
 
-    pairings.value = _wcClient!.pairings.getAll();
-    sessions.value = _wcClient!.sessions.getAll();
-    auth.value = _wcClient!.completeRequests.getAll();
+    pairings.value = _web3Wallet!.pairings.getAll();
+    sessions.value = _web3Wallet!.sessions.getAll();
+    auth.value = _web3Wallet!.completeRequests.getAll();
   }
 
   @override
   FutureOr onDispose() {
-    _wcClient!.core.relayClient.onRelayClientConnect
+    _web3Wallet!.core.relayClient.onRelayClientConnect
         .unsubscribe(_onRelayClientConnect);
-    _wcClient!.core.relayClient.onRelayClientDisconnect
+    _web3Wallet!.core.relayClient.onRelayClientDisconnect
         .unsubscribe(_onRelayClientDisconnect);
-    _wcClient!.core.relayClient.onRelayClientError
+    _web3Wallet!.core.relayClient.onRelayClientError
         .unsubscribe(_onRelayClientError);
 
-    _wcClient!.core.pairing.onPairingCreate.unsubscribe(_onPairingCreate);
-    _wcClient!.core.pairing.onPairingActivate.unsubscribe(_onPairingActivate);
-    _wcClient!.core.pairing.onPairingPing.unsubscribe(_onPairingPing);
-    _wcClient!.core.pairing.onPairingInvalid.unsubscribe(_onPairingInvalid);
-    _wcClient!.core.pairing.onPairingDelete.unsubscribe(_onPairingDelete);
+    _web3Wallet!.core.pairing.onPairingCreate.unsubscribe(_onPairingCreate);
+    _web3Wallet!.core.pairing.onPairingActivate.unsubscribe(_onPairingActivate);
+    _web3Wallet!.core.pairing.onPairingPing.unsubscribe(_onPairingPing);
+    _web3Wallet!.core.pairing.onPairingInvalid.unsubscribe(_onPairingInvalid);
+    _web3Wallet!.core.pairing.onPairingDelete.unsubscribe(_onPairingDelete);
 
-    _wcClient!.pairings.onSync.unsubscribe(_onPairingsSync);
-    _wcClient!.sessions.onSync.unsubscribe(_onSessionsSync);
+    _web3Wallet!.pairings.onSync.unsubscribe(_onPairingsSync);
+    _web3Wallet!.sessions.onSync.unsubscribe(_onSessionsSync);
 
-    _wcClient!.onSessionProposal.unsubscribe(_onSessionProposal);
-    _wcClient!.onSessionConnect.unsubscribe(_onSessionConnect);
-    _wcClient!.onSessionRequest.unsubscribe(_onSessionRequest);
-    _wcClient!.onSessionProposalError.unsubscribe(_onSessionProposalError);
-    _wcClient!.onSessionDelete.unsubscribe(_onSessionDelete);
-    // _wcClient!.onAuthRequest.unsubscribe(_onAuthRequest);
+    _web3Wallet!.onSessionProposal.unsubscribe(_onSessionProposal);
+    _web3Wallet!.onSessionConnect.unsubscribe(_onSessionConnect);
+    _web3Wallet!.onSessionProposalError.unsubscribe(_onSessionProposalError);
+    _web3Wallet!.onSessionDelete.unsubscribe(_onSessionDelete);
+    _web3Wallet!.onSessionAuthRequest.unsubscribe(_onSessionAuthRequest);
+    _web3Wallet!.onAuthRequest.unsubscribe(_onAuthRequest);
 
     pairings.dispose();
     sessions.dispose();
@@ -116,19 +122,19 @@ class Web3WalletService extends IWeb3WalletService {
 
   @override
   Web3Wallet getWeb3Wallet() {
-    return _wcClient!;
+    return _web3Wallet!;
   }
 
   @override
   Future<PairingInfo> pair(Uri uri) {
-    return _wcClient!.pair(uri: uri);
+    return _web3Wallet!.pair(uri: uri);
   }
 
   @override
   Future<void> activatePairing({
     required String topic,
   }) {
-    return _wcClient!.core.pairing.activate(
+    return _web3Wallet!.core.pairing.activate(
       topic: topic,
     );
   }
@@ -138,7 +144,7 @@ class Web3WalletService extends IWeb3WalletService {
     required String topic,
   }) async {
     try {
-      _wcClient!.core.pairing.disconnect(topic: topic);
+      _web3Wallet!.core.pairing.disconnect(topic: topic);
       _idSessionsApproved.clear();
     } on WalletConnectError catch (e) {
       // technically look for WalletConnectError 6 : Expired. to consider it a warning
@@ -155,7 +161,7 @@ class Web3WalletService extends IWeb3WalletService {
 
   @override
   Map<String, SessionData> getSessionsForPairing(String pairingTopic) {
-    return _wcClient!.getSessionsForPairing(
+    return _web3Wallet!.getSessionsForPairing(
       pairingTopic: pairingTopic,
     );
   }
@@ -181,7 +187,7 @@ class Web3WalletService extends IWeb3WalletService {
     Logger('WalletConnectService')
         .log(Level.INFO, 'disconnectSessions triggered');
     for (int i = 0; i < pairings.value.length; i++) {
-      await _wcClient!.disconnectSession(
+      await _web3Wallet!.disconnectSession(
         topic: pairings.value[i].topic,
         reason: Errors.getSdkError(Errors.USER_DISCONNECTED),
       );
@@ -193,7 +199,7 @@ class Web3WalletService extends IWeb3WalletService {
   Future<void> disconnectSession({required String topic}) async {
     Logger('WalletConnectService')
         .log(Level.INFO, 'disconnectSession triggered', topic);
-    _wcClient!.disconnectSession(
+    _web3Wallet!.disconnectSession(
       topic: topic,
       reason: Errors.getSdkError(Errors.USER_DISCONNECTED),
     );
@@ -203,7 +209,7 @@ class Web3WalletService extends IWeb3WalletService {
   Map<String, SessionData> getActiveSessions() {
     Logger('WalletConnectService')
         .log(Level.INFO, 'getActiveSessions triggered');
-    return _wcClient!.getActiveSessions();
+    return _web3Wallet!.getActiveSessions();
   }
 
   Future<void> _onRelayClientConnect(var args) async {
@@ -225,7 +231,7 @@ class Web3WalletService extends IWeb3WalletService {
     if (args != null) {
       Logger('WalletConnectService')
           .log(Level.INFO, '_onSessionsSync triggered', args.toString());
-      sessions.value = _wcClient!.sessions.getAll();
+      sessions.value = _web3Wallet!.sessions.getAll();
     }
   }
 
@@ -260,13 +266,8 @@ class Web3WalletService extends IWeb3WalletService {
     if (args != null) {
       Logger('WalletConnectService')
           .log(Level.INFO, '_onPairingsSync triggered', args.toString());
-      pairings.value = _wcClient!.pairings.getAll();
+      pairings.value = _web3Wallet!.pairings.getAll();
     }
-  }
-
-  Future<void> _onSessionRequest(SessionRequestEvent? args) async {
-    Logger('WalletConnectService')
-        .log(Level.INFO, '_onSessionRequest triggered', args.toString());
   }
 
   void _onSessionDelete(SessionDelete? args) {
@@ -291,6 +292,10 @@ class Web3WalletService extends IWeb3WalletService {
 
       final dAppMetadata = event.params.proposer.metadata;
 
+      final views = ConnectionWidgetBuilder().buildFromRequiredNamespaces(
+        event.params.generatedNamespaces!,
+      );
+
       final actionWasAccepted = await showDialogWithNoAndYesOptions<bool>(
         context: navState.currentContext!,
         title: 'Approve session',
@@ -299,15 +304,12 @@ class Web3WalletService extends IWeb3WalletService {
           children: [
             Text('Are you sure you want to '
                 'connect to ${dAppMetadata.name} ?'),
-            kVerticalSpacer,
             Image(
               image: NetworkImage(dAppMetadata.icons.first),
               height: 100.0,
               fit: BoxFit.fitHeight,
             ),
-            kVerticalSpacer,
             Text(dAppMetadata.description),
-            kVerticalSpacer,
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -322,6 +324,7 @@ class Web3WalletService extends IWeb3WalletService {
                 ),
               ],
             ),
+            ...views,
           ],
         ),
         onYesButtonPressed: () async {},
@@ -332,10 +335,8 @@ class Web3WalletService extends IWeb3WalletService {
         if (!_idSessionsApproved.contains(event.id)) {
           _idSessionsApproved.add(event.id);
           try {
-            final ApproveResponse approveResponse =
-                await _approveSession(id: event.id);
+            await _approveSession(event: event);
             _sendSuccessfullyApprovedSessionNotification(dAppMetadata);
-            sessions.value.add(approveResponse.session);
           } catch (e, stackTrace) {
             sendNotificationError(
               'WalletConnect session approval failed',
@@ -350,11 +351,14 @@ class Web3WalletService extends IWeb3WalletService {
           }
         }
       } else {
-        await _wcClient!.rejectSession(
+        await _web3Wallet!.rejectSession(
           id: event.id,
           reason: Errors.getSdkError(
             Errors.USER_REJECTED,
           ),
+        );
+        await _web3Wallet!.core.pairing.disconnect(
+          topic: event.params.pairingTopic,
         );
       }
     }
@@ -370,13 +374,152 @@ class Web3WalletService extends IWeb3WalletService {
         .then((value) => sl.get<WalletConnectSessionsBloc>().refreshResults());
   }
 
+  Future<void> _onSessionAuthRequest(SessionAuthRequest? args) async {
+    Logger('Web3WalletService').info(
+      '_onSessionAuthRequest ${jsonEncode(args?.authPayload.toJson())}',
+    );
+    if (args != null) {
+      final SessionAuthPayload authPayload = args.authPayload;
+
+      final Iterable<String> supportedChainIds =
+          await _generateSupportedChainIds();
+      final supportedMethods = Eip155SupportedMethods.values.map((e) => e.name);
+      final newAuthPayload = AuthSignature.populateAuthPayload(
+        authPayload: authPayload,
+        chains: supportedChainIds.toList(),
+        methods: supportedMethods.toList(),
+      );
+      final cacaoRequestPayload = CacaoRequestPayload.fromSessionAuthPayload(
+        newAuthPayload,
+      );
+      final AppAddress address = kEthSelectedAddress!;
+
+      final List<Map<String, dynamic>> formattedMessages = [];
+      for (final chain in newAuthPayload.chains) {
+        final iss = 'did:pkh:$chain:${address.hex}';
+        final message = _web3Wallet!.formatAuthMessage(
+          iss: iss,
+          cacaoPayload: cacaoRequestPayload,
+        );
+        formattedMessages.add({iss: message});
+      }
+
+      final bool? rs = await showDialogWithNoAndYesOptions<bool>(
+        context: navState.currentContext!,
+        title: '${args.requester.metadata.name} would like to connect',
+        onYesButtonPressed: () async {},
+        onNoButtonPressed: () async {},
+        content: Column(
+          children: formattedMessages
+              .map(
+                (e) => Text(e.values.first as String),
+              )
+              .toList(),
+        ),
+      );
+
+      if (rs ?? false) {
+        final credentials = await generateCredentials(address: address.hex);
+        //
+        final List<Cacao> cacaos = [];
+        for (var i = 0; i < formattedMessages.length; i++) {
+          final iss = formattedMessages[i].keys.first;
+          final String message = formattedMessages[i].values.first as String;
+          final signature = credentials.signPersonalMessageToUint8List(
+            Uint8List.fromList(message.codeUnits),
+          );
+          final hexSignature = bytesToHex(signature, include0x: true);
+          cacaos.add(
+            AuthSignature.buildAuthObject(
+              requestPayload: cacaoRequestPayload,
+              signature: CacaoSignature(
+                t: CacaoSignature.EIP191,
+                s: hexSignature,
+              ),
+              iss: iss,
+            ),
+          );
+        }
+        //
+        final _ = await _web3Wallet!.approveSessionAuthenticate(
+          id: args.id,
+          auths: cacaos,
+        );
+      } else {
+        await _web3Wallet!.rejectSessionAuthenticate(
+          id: args.id,
+          reason: Errors.getSdkError(Errors.USER_REJECTED_AUTH),
+        );
+      }
+    }
+  }
+
+  Future<Iterable<String>> _generateSupportedChainIds() async {
+    final List<AppNetwork> appNetworks = await db.managers.appNetworks
+        .filter((f) => f.blockChain.equals(BlockChain.evm))
+        .get();
+    final Iterable<ChainMetadata> chainsMetadata =
+        appNetworks.map((e) => generateChainMetadata(e));
+    final supportedChains = chainsMetadata.map((e) => e.chainId);
+    return supportedChains;
+  }
+
+  Future<void> _onAuthRequest(AuthRequest? args) async {
+    Logger('Web3WalletService').info(
+      '_onAuthRequest ${jsonEncode(args?.payloadParams.toJson())}',
+    );
+    if (args != null) {
+      final AppAddress address = kEthSelectedAddress!;
+
+      final cacaoPayload = CacaoRequestPayload.fromPayloadParams(
+        args.payloadParams,
+      );
+      final iss = 'did:pkh:${args.payloadParams.chainId}:${address.hex}';
+      final message = _web3Wallet!.formatAuthMessage(
+        iss: iss,
+        cacaoPayload: cacaoPayload,
+      );
+
+      final bool? rs = await showDialogWithNoAndYesOptions<bool>(
+        context: navState.currentContext!,
+        title: '${args.requester.metadata.name} would like to connect',
+        onYesButtonPressed: () async {},
+        onNoButtonPressed: () async {},
+        content: Text(message),
+      );
+
+      if (rs ?? false) {
+        final credentials = await generateCredentials(address: address.hex);
+
+        final signature = credentials.signPersonalMessageToUint8List(
+          Uint8List.fromList(message.codeUnits),
+        );
+        final hexSignature = bytesToHex(signature, include0x: true);
+
+        await _web3Wallet!.respondAuthRequest(
+          id: args.id,
+          iss: iss,
+          signature: CacaoSignature(
+            t: CacaoSignature.EIP191,
+            s: hexSignature,
+          ),
+        );
+      } else {
+        await _web3Wallet!.respondAuthRequest(
+          id: args.id,
+          iss: iss,
+          error: Errors.getSdkError(Errors.USER_REJECTED_AUTH),
+        );
+      }
+    }
+  }
+
   void _sendSuccessfullyApprovedSessionNotification(
     PairingMetadata dAppMetadata,
   ) {
-    sl.get<NotificationsBloc>().addNotification(
-          WalletNotification(
+    sl.get<NotificationsService>().addNotification(
+          WalletNotificationsCompanion.insert(
             title: 'Successfully connected to ${dAppMetadata.name}',
-            timestamp: DateTime.now().millisecondsSinceEpoch,
             details: 'Successfully connected to ${dAppMetadata.name} '
                 'via WalletConnect',
             type: NotificationType.paymentSent,
@@ -385,35 +528,14 @@ class Web3WalletService extends IWeb3WalletService {
   }
 
   Future<ApproveResponse> _approveSession({
-    required int id,
-    Map<String, Namespace>? namespaces,
+    required SessionProposalEvent event,
   }) async {
-    namespaces = namespaces ??
-        {
-          'zenon': Namespace(
-            accounts: _getWalletAccounts(),
-            methods: [
-              'znn_sign',
-              'znn_info',
-              'znn_send',
-            ],
-            events: ['chainIdChange', 'addressChange'],
-          ),
-        };
-    return _wcClient!.approveSession(
-      id: id,
-      namespaces: namespaces,
+    return _web3Wallet!.approveSession(
+      id: event.id,
+      namespaces: event.params.generatedNamespaces!,
+      sessionProperties: event.params.sessionProperties,
     );
   }
-
-  String _generateAccount(String address, int chainId) =>
-      '$kZenonNameSpace:1:$address';
-
-  List<String> _getWalletAccounts() => kAddressLabelMap.values
-      .map(
-        (address) => _generateAccount(address, getChainIdentifier()),
-      )
-      .toList();
 
   Future<void> _emitEventPairedDApps({
     required String changeName,
@@ -442,7 +564,7 @@ class Web3WalletService extends IWeb3WalletService {
     required String changeName,
     required String newValue,
   }) {
-    return _wcClient!.emitSessionEvent(
+    return _web3Wallet!.emitSessionEvent(
       topic: sessionTopic,
       chainId: 'zenon:1',
       event: SessionEventParams(

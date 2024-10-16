@@ -9,13 +9,13 @@ import 'package:flutter_material_design_icons/flutter_material_design_icons.dart
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
+import 'package:syrius_mobile/database/export.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/model/model.dart';
 import 'package:syrius_mobile/screens/screens.dart';
+import 'package:syrius_mobile/screens/web_view_screen.dart';
 import 'package:syrius_mobile/services/i_web3wallet_service.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
-import 'package:wallet_connect_uri_validator/wallet_connect_uri_validator.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -28,11 +28,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _initialUriIsHandled = false;
   final AppLinks _appLinks = AppLinks();
-  final PageController _pageController = PageController();
-  final List<Widget> _pages = [
+  final List<Widget> _initialPages = [
     const WalletScreen(),
     const ActivityScreen(),
-    const RewardsScreen(),
     const SettingScreen(),
   ];
 
@@ -42,6 +40,8 @@ class _HomeScreenState extends State<HomeScreen> {
   StakingOptionsBloc stakingOptionsBloc = StakingOptionsBloc();
   DelegateButtonBloc delegateButtonBloc = DelegateButtonBloc();
   PlasmaOptionsBloc plasmaOptionsBloc = PlasmaOptionsBloc();
+
+  PageController? _pageController;
 
   @override
   void initState() {
@@ -58,26 +58,57 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (bool didPop) {
-        if (didPop) {
-          return;
+    return Consumer<SelectedNetworkNotifier>(
+      builder: (_, __, ___) {
+        const Widget rewardsPage = RewardsScreen();
+        const Widget webViewPage = WebViewScreen();
+        const Widget acceleratorPage = AcceleratorZScreen();
+
+        final List<Widget> copyOfInitialPages = [];
+
+        copyOfInitialPages.addAll(_initialPages);
+
+        final List<Widget> pagesToBeInserted = [];
+
+        switch (kSelectedAppNetworkWithAssets!.network.blockChain) {
+          case BlockChain.btc:
+            break;
+          case BlockChain.evm:
+            pagesToBeInserted.add(webViewPage);
+          case BlockChain.nom:
+            pagesToBeInserted.addAll([rewardsPage, acceleratorPage]);
         }
-        if (_currentPageIndex > 0) {
-          _redirectToDashboardScreen();
-        } else {
-          SystemNavigator.pop();
-        }
+
+        copyOfInitialPages.insertAll(2, pagesToBeInserted);
+
+        _pageController?.dispose();
+
+        _pageController = PageController();
+
+        return PopScope<Object?>(
+          canPop: false,
+          onPopInvokedWithResult: (bool didPop, Object? _) {
+            if (didPop) {
+              return;
+            }
+            if (_currentPageIndex > 0) {
+              _redirectToDashboardScreen(pageController: _pageController!);
+            } else {
+              SystemNavigator.pop();
+            }
+          },
+          child: Scaffold(
+            bottomNavigationBar: _getBottomNavigationBar(
+              pageController: _pageController!,
+            ),
+            body: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: copyOfInitialPages,
+            ),
+          ),
+        );
       },
-      child: Scaffold(
-        bottomNavigationBar: _getBottomNavigationBar(),
-        body: PageView(
-          controller: _pageController,
-          physics: const NeverScrollableScrollPhysics(),
-          children: _pages,
-        ),
-      ),
     );
   }
 
@@ -88,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _pageController?.dispose();
     sendPaymentBloc.dispose();
     stakingOptionsBloc.dispose();
     delegateButtonBloc.dispose();
@@ -97,8 +128,11 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Widget _getBottomNavigationBar() {
+  Widget _getBottomNavigationBar({
+    required PageController pageController,
+  }) {
     return BottomNavigationBar(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       currentIndex: _currentPageIndex,
       iconSize: 35.0,
       items: _getBarItems(),
@@ -108,19 +142,46 @@ class _HomeScreenState extends State<HomeScreen> {
       type: BottomNavigationBarType.fixed,
       unselectedFontSize: 10.0,
       useLegacyColorScheme: false,
-      onTap: _navigateToPage,
+      onTap: (index) => _navigateToPage(
+        index: index,
+        pageController: pageController,
+      ),
     );
   }
 
-  void _navigateToPage(int index) {
+  void _navigateToPage({
+    required int index,
+    required PageController pageController,
+  }) {
     setState(() {
       _currentPageIndex = index;
-      _pageController.jumpToPage(index);
+      pageController.jumpToPage(index);
     });
   }
 
   List<BottomNavigationBarItem> _getBarItems() {
-    return List.from([
+    final BottomNavigationBarItem acceleratorItem = BottomNavigationBarItem(
+      icon: const Icon(
+        MdiIcons.rocket,
+      ),
+      label: AppLocalizations.of(context)!.az,
+    );
+
+    final BottomNavigationBarItem rewardsItem = BottomNavigationBarItem(
+      icon: const Icon(
+        MdiIcons.trophyAward,
+      ),
+      label: AppLocalizations.of(context)!.rewards,
+    );
+
+    const BottomNavigationBarItem dAppItem = BottomNavigationBarItem(
+      icon: Icon(
+        MdiIcons.web,
+      ),
+      label: 'Web3',
+    );
+
+    final List<BottomNavigationBarItem> initialItems = [
       BottomNavigationBarItem(
         icon: const Icon(
           MdiIcons.walletBifold,
@@ -135,26 +196,35 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       BottomNavigationBarItem(
         icon: const Icon(
-          MdiIcons.trophyAward,
-        ),
-        label: AppLocalizations.of(context)!.rewards,
-      ),
-      BottomNavigationBarItem(
-        icon: const Icon(
           Icons.settings,
         ),
         label: AppLocalizations.of(context)!.settings,
       ),
-    ]);
+    ];
+
+    final List<BottomNavigationBarItem> itemsToBoInserted = [];
+
+    switch (kSelectedAppNetworkWithAssets!.network.blockChain) {
+      case BlockChain.btc:
+        break;
+      case BlockChain.evm:
+        itemsToBoInserted.add(dAppItem);
+      case BlockChain.nom:
+        itemsToBoInserted.addAll([rewardsItem, acceleratorItem]);
+    }
+
+    initialItems.insertAll(2, itemsToBoInserted);
+
+    return initialItems;
   }
 
-  void _redirectToDashboardScreen() {
-    _navigateToPage(0);
+  void _redirectToDashboardScreen({required PageController pageController}) {
+    _navigateToPage(index: 0, pageController: pageController);
   }
 
   Future<void> _handleIncomingLinks() async {
     if (!kIsWeb) {
-      _incomingLinkSubscription = _appLinks.allUriLinkStream.listen(
+      _incomingLinkSubscription = _appLinks.uriLinkStream.listen(
         (Uri? uri) async {
           if (uri != null) {
             final String uriRaw = uri.toString();
@@ -166,8 +236,7 @@ class _HomeScreenState extends State<HomeScreen> {
               if (uriRaw.contains('wc')) {
                 final String wcUri =
                     Uri.decodeFull(uriRaw.split('wc?uri=').last);
-                if (WalletConnectUri.tryParse(wcUri) != null &&
-                    wcUri.contains('symKey')) {
+                if (Uri.tryParse(wcUri) != null && wcUri.contains('symKey')) {
                   sl<IWeb3WalletService>().pair(Uri.parse(wcUri));
                 }
                 return;
@@ -211,14 +280,13 @@ class _HomeScreenState extends State<HomeScreen> {
               if (context.mounted) {
                 switch (uri.host) {
                   case 'transfer':
-                    sl<NotificationsBloc>().addNotification(
-                      WalletNotification(
-                        title: 'Transfer action detected',
-                        timestamp: DateTime.now().millisecondsSinceEpoch,
-                        details: 'Deep link: $uriRaw',
-                        type: NotificationType.paymentReceived,
-                      ),
-                    );
+                    sl.get<NotificationsService>().addNotification(
+                          WalletNotificationsCompanion.insert(
+                            title: 'Transfer action detected',
+                            details: 'Deep link: $uriRaw',
+                            type: NotificationType.paymentReceived,
+                          ),
+                        );
 
                     if (_isWalletUnlocked()) {
                       if (!mounted) return;
@@ -240,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onYesButtonPressed: () {
                             sendPaymentBloc.sendTransfer(
                               context: context,
-                              fromAddress: kSelectedAddress!,
+                              fromAddress: kSelectedAddress!.hex,
                               toAddress: queryAddress,
                               amount:
                                   queryAmount.extractDecimals(token!.decimals),
@@ -253,14 +321,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
 
                   case 'stake':
-                    sl<NotificationsBloc>().addNotification(
-                      WalletNotification(
-                        title: 'Stake action detected',
-                        timestamp: DateTime.now().millisecondsSinceEpoch,
-                        details: 'Deep link: $uriRaw',
-                        type: NotificationType.paymentReceived,
-                      ),
-                    );
+                    sl.get<NotificationsService>().addNotification(
+                          WalletNotificationsCompanion.insert(
+                            title: 'Stake action detected',
+                            details: 'Deep link: $uriRaw',
+                            type: NotificationType.paymentReceived,
+                          ),
+                        );
 
                     if (_isWalletUnlocked()) {
                       if (!mounted) return;
@@ -289,14 +356,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
 
                   case 'delegate':
-                    sl<NotificationsBloc>().addNotification(
-                      WalletNotification(
-                        title: 'Delegate action detected',
-                        timestamp: DateTime.now().millisecondsSinceEpoch,
-                        details: 'Deep link: $uriRaw',
-                        type: NotificationType.paymentReceived,
-                      ),
-                    );
+                    sl.get<NotificationsService>().addNotification(
+                          WalletNotificationsCompanion.insert(
+                            title: 'Delegate action detected',
+                            details: 'Deep link: $uriRaw',
+                            type: NotificationType.paymentReceived,
+                          ),
+                        );
 
                     if (_isWalletUnlocked()) {
                       if (!mounted) return;
@@ -322,14 +388,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
 
                   case 'fuse':
-                    sl<NotificationsBloc>().addNotification(
-                      WalletNotification(
-                        title: 'Fuse ${kQsrCoin.symbol} action detected',
-                        timestamp: DateTime.now().millisecondsSinceEpoch,
-                        details: 'Deep link: $uriRaw',
-                        type: NotificationType.paymentReceived,
-                      ),
-                    );
+                    sl.get<NotificationsService>().addNotification(
+                          WalletNotificationsCompanion.insert(
+                            title: 'Fuse ${kQsrCoin.symbol} action detected',
+                            details: 'Deep link: $uriRaw',
+                            type: NotificationType.paymentReceived,
+                          ),
+                        );
 
                     if (_isWalletUnlocked()) {
                       if (!mounted) return;
@@ -357,42 +422,39 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
 
                   case 'sentinel':
-                    sl<NotificationsBloc>().addNotification(
-                      WalletNotification(
-                        title: 'Deploy Sentinel action detected',
-                        timestamp: DateTime.now().millisecondsSinceEpoch,
-                        details: 'Deep link: $uriRaw',
-                        type: NotificationType.paymentReceived,
-                      ),
-                    );
+                    sl.get<NotificationsService>().addNotification(
+                          WalletNotificationsCompanion.insert(
+                            title: 'Deploy Sentinel action detected',
+                            details: 'Deep link: $uriRaw',
+                            type: NotificationType.paymentReceived,
+                          ),
+                        );
 
                     if (_isWalletUnlocked()) {
                       //TODO: navigate to Sentinel
                     }
 
                   case 'pillar':
-                    sl<NotificationsBloc>().addNotification(
-                      WalletNotification(
-                        title: 'Deploy Pillar action detected',
-                        timestamp: DateTime.now().millisecondsSinceEpoch,
-                        details: 'Deep link: $uriRaw',
-                        type: NotificationType.paymentReceived,
-                      ),
-                    );
+                    sl.get<NotificationsService>().addNotification(
+                          WalletNotificationsCompanion.insert(
+                            title: 'Deploy Pillar action detected',
+                            details: 'Deep link: $uriRaw',
+                            type: NotificationType.paymentReceived,
+                          ),
+                        );
 
                     if (_isWalletUnlocked()) {
                       //TODO: navigate to Pillar
                     }
 
                   default:
-                    sl<NotificationsBloc>().addNotification(
-                      WalletNotification(
-                        title: 'Incoming link detected',
-                        timestamp: DateTime.now().millisecondsSinceEpoch,
-                        details: 'Deep link: $uriRaw',
-                        type: NotificationType.paymentReceived,
-                      ),
-                    );
+                    sl.get<NotificationsService>().addNotification(
+                          WalletNotificationsCompanion.insert(
+                            title: 'Incoming link detected',
+                            details: 'Deep link: $uriRaw',
+                            type: NotificationType.paymentReceived,
+                          ),
+                        );
                     break;
                 }
               }
@@ -423,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_initialUriIsHandled) {
       _initialUriIsHandled = true;
       try {
-        final uri = await _appLinks.getInitialAppLink();
+        final uri = await _appLinks.getInitialLink();
         if (uri != null) {
           Logger('MainAppContainer').log(Level.INFO, '_handleInitialUri $uri');
         }
@@ -448,6 +510,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _animateToHistoryScreen() {
-    _navigateToPage(1);
+    _navigateToPage(index: 1, pageController: _pageController!);
   }
 }

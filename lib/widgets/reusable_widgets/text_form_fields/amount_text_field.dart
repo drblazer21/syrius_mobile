@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:syrius_mobile/utils/utils.dart';
 
 class AmountTextField extends TextField {
   AmountTextField({
     required BuildContext context,
     required FocusNode super.focusNode,
     required TextEditingController super.controller,
+    required int maxDecimals,
     required VoidCallback onMaxPressed,
     required TextInputAction textInputAction,
     required String? Function(String) validator,
@@ -30,8 +32,9 @@ class AmountTextField extends TextField {
               ? [
                   FilteringTextInputFormatter.allow(RegExp(r'^\d+$')),
                 ]
-              : _getAmountTextInputFormatters(
-                  controller.text,
+              : generateAmountTextInputFormatters(
+                  replacementString: controller.text,
+                  maxDecimals: maxDecimals,
                 ),
           keyboardType: TextInputType.number,
           onSubmitted: textInputAction == TextInputAction.next
@@ -42,17 +45,3 @@ class AmountTextField extends TextField {
           textInputAction: textInputAction,
         );
 }
-
-List<TextInputFormatter> _getAmountTextInputFormatters(
-  String replacementString,
-) =>
-    [
-      FilteringTextInputFormatter.allow(
-        RegExp(r'^\d*\.?\d*?$'),
-        replacementString: replacementString,
-      ),
-      FilteringTextInputFormatter.deny(
-        RegExp(r'^0\d+'),
-        replacementString: replacementString,
-      ),
-    ];

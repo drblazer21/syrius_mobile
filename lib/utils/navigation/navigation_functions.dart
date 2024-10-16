@@ -1,10 +1,19 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
+import 'package:syrius_mobile/database/export.dart';
+import 'package:syrius_mobile/model/model.dart';
+import 'package:syrius_mobile/screens/accelerator_z/accelerator_project_details_screen.dart';
+import 'package:syrius_mobile/screens/accelerator_z/accelerator_project_list_screen.dart';
 import 'package:syrius_mobile/screens/screens.dart';
 import 'package:syrius_mobile/screens/settings/delete_wallet_screen.dart';
 import 'package:syrius_mobile/screens/settings/info_screen.dart';
 import 'package:syrius_mobile/utils/utils.dart';
+import 'package:syrius_mobile/widgets/accelerator/accelerator_donation_stepper.dart';
+import 'package:syrius_mobile/widgets/accelerator/project_creation_stepper.dart';
+import 'package:syrius_mobile/widgets/accelerator/update_phase_stepper.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 
@@ -17,6 +26,40 @@ Future<dynamic> showAcceleratorZScreen(BuildContext context) async {
     AppRoute.acceleratorZ,
   );
 }
+
+Future<dynamic> showAcceleratorDonationStepper(BuildContext context) => _push(
+      context,
+      const AcceleratorDonationStepper(),
+      AppRoute.acceleratorDonationStepper,
+    );
+
+Future<dynamic> showAcceleratorProjectDetailsScreen({
+  required BuildContext context,
+  required PillarInfo? pillarInfo,
+  required AcceleratorProject project,
+}) =>
+    _push(
+      context,
+      AcceleratorProjectDetailsScreen(
+        pillarInfo: pillarInfo,
+        project: project,
+      ),
+      AppRoute.acceleratorProjectDetails,
+    );
+
+Future<dynamic> showAcceleratorProjectListScreen(BuildContext context) async {
+  await _push(
+    context,
+    const AcceleratorProjectListScreen(),
+    AppRoute.acceleratorProjectList,
+  );
+}
+
+Future<dynamic> showAcceleratorStatsScreen(BuildContext context) => _push(
+      context,
+      const AcceleratorStats(),
+      AppRoute.acceleratorStats,
+    );
 
 Future<dynamic> showAccessWalletScreen(
   BuildContext context, {
@@ -45,13 +88,30 @@ Future<dynamic> showActivateBiometryScreen({
       until: predicate,
     );
 
-Future<dynamic> showAddNodeScreen(
-  BuildContext context,
-) async {
+Future<dynamic> showAddNetworkScreen({
+  required BuildContext context,
+  required AddNetworkScreenMode mode,
+  AppNetwork? appNetwork,
+}) async {
   await _push(
     context,
-    const AddNodeScreen(),
-    AppRoute.addNode,
+    AddNetworkScreen(
+      appNetwork: appNetwork,
+      mode: mode,
+    ),
+    AppRoute.addNetwork,
+    fullscreenDialog: true,
+  );
+}
+
+Future<dynamic> showAddNewTokenScreen({
+  required BuildContext context,
+}) async {
+  await _push(
+    context,
+    const AddNewTokenScreen(),
+    AppRoute.addNewToken,
+    fullscreenDialog: true,
   );
 }
 
@@ -76,6 +136,30 @@ Future<dynamic> showBackupWalletScreen(
       isOnboardingFlow: isOnboardingFlow,
     ),
     AppRoute.backupSeed,
+    until: routePredicate,
+  );
+}
+
+Future<dynamic> showBuyScreen(
+  BuildContext context, {
+  RoutePredicate? routePredicate,
+}) async {
+  await _push(
+    context,
+    const BuyScreen(),
+    AppRoute.buy,
+    until: routePredicate,
+  );
+}
+
+Future<dynamic> showBuyStepperScreen(
+  BuildContext context, {
+  RoutePredicate? routePredicate,
+}) async {
+  await _push(
+    context,
+    const BuyStepperScreen(),
+    AppRoute.buyStepper,
     until: routePredicate,
   );
 }
@@ -148,33 +232,13 @@ Future<dynamic> showManageAddressScreen(BuildContext context) => _push(
       AppRoute.manageAddresses,
     );
 
-Future<dynamic> showNodeManagementScreen(BuildContext context) async {
-  await _push(
-    context,
-    const NodeManagementScreen(),
-    AppRoute.nodeManagement,
-  );
-}
-
-Future<dynamic> showNodeSelectionScreen(
+Future<dynamic> showNotificationScreen(
   BuildContext context,
 ) =>
     _push(
       context,
-      const NodeSelectionScreen(),
-      AppRoute.nodeSelection,
-    );
-
-Future<dynamic> showNotificationScreen(
-  BuildContext context, {
-  required NotificationsProvider getNotificationProvider,
-}) =>
-    _push(
-      context,
       const NotificationScreen(),
       AppRoute.notification,
-    ).then(
-      (value) => {getNotificationProvider.getNotificationsFromDb()},
     );
 
 Future<dynamic> showOtpCodeConfirmationScreen({
@@ -211,6 +275,16 @@ Future<dynamic> showOtpScreen(
       replaceRoute: replaceRoute,
     );
 
+Future<dynamic> showPhaseCreationStepper({
+  required BuildContext context,
+  required Project project,
+}) =>
+    _push(
+      context,
+      PhaseCreationStepper(project),
+      AppRoute.phaseCreationStepper,
+    );
+
 Future<dynamic> showPillarDetailScreen({
   required BuildContext context,
   required DelegationInfo? delegationInfo,
@@ -244,6 +318,12 @@ Future<dynamic> showPlasmaListScreen(BuildContext context) => _push(
       AppRoute.plasmaList,
     );
 
+Future<dynamic> showProjectCreationStepper(BuildContext context) => _push(
+      context,
+      const ProjectCreationStepper(),
+      AppRoute.projectCreationStepper,
+    );
+
 Future<dynamic> showScreenshotScreen({
   required BuildContext context,
 }) =>
@@ -262,6 +342,41 @@ Future<dynamic> showDeleteWalletScreen({
       AppRoute.deleteWallet,
     );
 
+Future<dynamic> showEditBtcTxFeePerByt({
+  required BigInt balance,
+  required BuildContext context,
+  required double feePerByte,
+  required BigInt txValue,
+  required int txSize,
+}) async =>
+    _push(
+      context,
+      EditBtcTxFeePerByteScreen(
+        balance: balance,
+        feePerByte: feePerByte,
+        txValue: txValue,
+        txSize: txSize,
+      ),
+      AppRoute.editGasFee,
+      fullscreenDialog: true,
+    );
+
+Future<void> showEditGasFeeScreen({
+  required BuildContext context,
+  required EthereumTxGasDetailsData data,
+  required GasFeeDetailsBloc gasFeeDetailsBloc,
+}) async {
+  await _push(
+    context,
+    EditGasFeeScreen(
+      data: data,
+      gasFeeDetailsBloc: gasFeeDetailsBloc,
+    ),
+    AppRoute.editGasFee,
+    fullscreenDialog: true,
+  );
+}
+
 Future<dynamic> showInfoScreen({
   required BuildContext context,
 }) =>
@@ -278,6 +393,24 @@ Future<dynamic> showSendScreen({
       context,
       const SendScreen(),
       AppRoute.send,
+    );
+
+Future<dynamic> showSendBtcScreen({
+  required BuildContext context,
+}) =>
+    _push(
+      context,
+      const SendBtcScreen(),
+      AppRoute.sendBtc,
+    );
+
+Future<dynamic> showSendEthScreen({
+  required BuildContext context,
+}) =>
+    _push(
+      context,
+      const SendEthScreen(),
+      AppRoute.sendEth,
     );
 
 Future<dynamic> showStakingScreen(BuildContext context) => _push(
@@ -299,20 +432,15 @@ Future<dynamic> showSyriusAddressScanner({
       AppRoute.syriusAddressScanner,
     );
 
-Future<dynamic> showTokenListScreen({
+Future<dynamic> showUpdatePhaseStepper({
   required BuildContext context,
-  required Function(Token) onSelect,
-  required AccountInfo accountInfo,
-  required Token selectedToken,
+  required Phase phase,
+  required Project project,
 }) =>
     _push(
       context,
-      TokenListScreen(
-        onSelect: onSelect,
-        accountInfo: accountInfo,
-        selectedToken: selectedToken,
-      ),
-      AppRoute.tokenList,
+      UpdatePhaseStepper(phase, project),
+      AppRoute.updatePhaseStepper,
     );
 
 Future<dynamic> showWalletConnectCodeScanner({
@@ -333,12 +461,14 @@ Future<dynamic> showWalletConnectScreen(BuildContext context) => _push(
       AppRoute.walletConnect,
     );
 
-PageTransition _getPageTransition(
-  Widget child,
-  RouteSettings? routeSettings,
-) {
+PageTransition _getPageTransition({
+  required RouteSettings routeSettings,
+  required Widget child,
+  required bool fullscreenDialog,
+}) {
   return PageTransition(
     alignment: Alignment.center,
+    fullscreenDialog: fullscreenDialog,
     settings: routeSettings,
     type: PageTransitionType.theme,
     child: child,
@@ -360,13 +490,18 @@ Future<dynamic> _push(
   AppRoute appRoute, {
   bool replaceRoute = false,
   RoutePredicate? until,
+  bool fullscreenDialog = false,
 }) async {
   final settings = RouteSettings(name: '/${appRoute.name}');
 
   final bool isCurrentRoute = _isCurrentRoute(routeSettings: settings);
 
   if (!isCurrentRoute) {
-    final destinationRoute = _getPageTransition(screen, settings);
+    final destinationRoute = _getPageTransition(
+      child: screen,
+      routeSettings: settings,
+      fullscreenDialog: fullscreenDialog,
+    );
 
     if (until != null) {
       return Navigator.of(ctx).pushAndRemoveUntil(

@@ -102,6 +102,7 @@ class _WalletConnectScreenState extends State<WalletConnectScreen> {
   void _handleWalletConnectPairingBlocUpdates() {
     _walletConnectPairingBloc.stream.listen(
       (event) {
+        if (!mounted) return;
         if (event == null) {
           showDialog(
             context: context,
@@ -113,6 +114,7 @@ class _WalletConnectScreenState extends State<WalletConnectScreen> {
         }
       },
       onError: (error) {
+        if (!mounted) return;
         Navigator.pop(context);
         sendNotificationError(
           AppLocalizations.of(context)!.walletConnectPairingFailure,

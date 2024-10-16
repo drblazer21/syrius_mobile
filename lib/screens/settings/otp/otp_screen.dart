@@ -84,7 +84,7 @@ class _OtpScreenState extends State<OtpScreen> {
           ),
           enabled: false,
           style: TextStyle(
-            color: context.colorScheme.onBackground,
+            color: context.colorScheme.onSurface,
           ),
         ),
         CopyToClipboardButton(
@@ -117,7 +117,7 @@ class _OtpScreenState extends State<OtpScreen> {
           ),
           enabled: false,
           style: TextStyle(
-            color: context.colorScheme.onBackground,
+            color: context.colorScheme.onSurface,
           ),
         ),
         CopyToClipboardButton(

@@ -4,12 +4,12 @@ import 'package:syrius_mobile/utils/utils.dart';
 
 class ExplorerButton extends IconButton {
   ExplorerButton({
-    required String hash,
-    super.key,
+    required String url,
     Color? iconColor,
+    super.key,
   }) : super(
           onPressed: () {
-            launchUrl('$kZenonHubExplorer/explorer/transaction/$hash');
+            launchUrl(url);
           },
           icon: Icon(
             MdiIcons.compass,

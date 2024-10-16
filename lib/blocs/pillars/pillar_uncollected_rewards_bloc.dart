@@ -9,7 +9,7 @@ class PillarUncollectedRewardsBloc
   Future<UncollectedReward> getDataAsync() =>
       zenon.embedded.pillar.getUncollectedReward(
         Address.parse(
-          kSelectedAddress!,
+          kSelectedAddress!.hex,
         ),
       );
 }

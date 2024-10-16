@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
-import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 
@@ -30,10 +29,6 @@ class _ConfirmPincodeScreenState extends State<ConfirmPincodeScreen> {
     super.initState();
     _createKeyStoreBloc.stream.listen((event) async {
       if (event != null) {
-        await establishConnectionToNode(kDefaultNode);
-        await loadDbNodes();
-        await sharedPrefsService.put(kSelectedNodeKey, kDefaultNode);
-        kCurrentNode = kDefaultNode;
         if (!mounted) return;
         Navigator.pop(context);
         await showActivateBiometryScreen(
@@ -43,6 +38,7 @@ class _ConfirmPincodeScreenState extends State<ConfirmPincodeScreen> {
         );
       }
     }).onError((error) {
+      if (!mounted) return;
       Navigator.pop(context);
       _showErrorBottomSheet(error);
       return;

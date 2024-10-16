@@ -35,7 +35,6 @@ class _DeleteWalletScreenState extends State<DeleteWalletScreen> {
     return showModalBottomSheetWithBody(
       context: context,
       title: AppLocalizations.of(context)!.deleteWallet,
-      backgroundColor: Colors.black,
       body: Column(
         children: [
           Text(

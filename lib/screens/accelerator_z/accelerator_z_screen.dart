@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:syrius_mobile/model/model.dart';
 import 'package:syrius_mobile/utils/constants.dart';
+import 'package:syrius_mobile/utils/extensions/list_separator.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 
 class AcceleratorZScreen extends StatefulWidget {
@@ -20,19 +21,20 @@ class _AcceleratorZScreenState extends State<AcceleratorZScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 5.0),
         child: ListView(
           physics: const BouncingScrollPhysics(),
-          children: const [
-            PageCard(
+          children: <Widget>[
+            const PageCard(
               type: PageCardType.acceleratorProjectList,
             ),
-            kVerticalSpacer,
-            PageCard(
+            const PageCard(
               type: PageCardType.acceleratorCreateProject,
             ),
-            kVerticalSpacer,
-            PageCard(
+            const PageCard(
               type: PageCardType.acceleratorDonate,
             ),
-          ],
+            const PageCard(
+              type: PageCardType.acceleratorStats,
+            ),
+          ].addSeparator(kVerticalSpacer),
         ),
       ),
     );

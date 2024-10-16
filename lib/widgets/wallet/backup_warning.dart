@@ -17,10 +17,10 @@ class BackupWarning extends StatelessWidget {
       context: context,
       onSuccess: (_) {
         Navigator.pop(context);
-        final bool shouldCheckForOtp = sharedPrefsService.get(
-          kUseOtpForRevealingSeedKey,
-          defaultValue: false,
-        )!;
+        final bool shouldCheckForOtp = sharedPrefs.getBool(
+              kUseOtpForRevealingSeedKey,
+            ) ??
+            false;
         if (shouldCheckForOtp) {
           showOtpCodeConfirmationScreen(
             context: context,

@@ -47,10 +47,9 @@ class _OtpCodeConfirmationScreenState extends State<OtpCodeConfirmationScreen> {
   }
 
   void _saveSecretKeyAndNavigateToNextScreen(String secretKey) {
-    final bool wasOtpSecretKeySaved = sharedPrefsService.get(
+    final bool wasOtpSecretKeySaved = sharedPrefs.getBool(
       kWasOtpSecretKeyStoredKey,
-      defaultValue: false,
-    )!;
+    ) ?? false;
 
     if (!wasOtpSecretKeySaved) {
       Future.wait(
@@ -59,7 +58,7 @@ class _OtpCodeConfirmationScreenState extends State<OtpCodeConfirmationScreen> {
             key: kOtpSecretKey,
             value: secretKey,
           ),
-          sharedPrefsService.put(
+          sharedPrefs.setBool(
             kWasOtpSecretKeyStoredKey,
             true,
           ),

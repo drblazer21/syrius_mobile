@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:syrius_mobile/model/model.dart';
+import 'package:syrius_mobile/database/export.dart';
+import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 
 class CustomAppbarScreen extends StatelessWidget {
   final String? appbarTitle;
+  final Widget? appbarTitleWidget;
   final Widget child;
   final Widget? actionWidget;
   final Widget? floatingActionButton;
@@ -16,6 +17,7 @@ class CustomAppbarScreen extends StatelessWidget {
   const CustomAppbarScreen({
     required this.child,
     super.key,
+    this.appbarTitleWidget,
     this.actionWidget,
     this.appbarTitle,
     this.floatingActionButton,
@@ -38,7 +40,7 @@ class CustomAppbarScreen extends StatelessWidget {
         toolbarHeight: 55.0,
         leading: leadingWidget,
         leadingWidth: leadingWidth,
-        title: title,
+        title: title ?? appbarTitleWidget,
         actions: actionWidget != null ? [actionWidget!] : null,
       ),
       body: SafeArea(
@@ -64,10 +66,10 @@ Widget notificationsIcon(
 
   final Icon readNotificationsIcon = Icon(
     Icons.notifications_outlined,
-    color: context.colorScheme.onBackground,
+    color: context.colorScheme.onSurface,
   );
   return StreamBuilder<List<WalletNotification?>>(
-    stream: context.read<NotificationsProvider>().getNotifications,
+    stream: sl.get<NotificationsService>().notifications,
     builder: (context, snapshot) {
       if (!snapshot.hasData) {
         return Container();
@@ -83,7 +85,6 @@ Widget notificationsIcon(
         onPressed: () {
           showNotificationScreen(
             context,
-            getNotificationProvider: context.read<NotificationsProvider>(),
           );
         },
         icon: icon,

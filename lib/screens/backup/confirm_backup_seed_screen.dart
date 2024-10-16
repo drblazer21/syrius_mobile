@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -89,10 +88,10 @@ class _ConfirmBackupScreenState extends State<ConfirmBackupScreen> {
           ),
         ),
         kVerticalSpacer,
-        _buildOutlinedSeedContainer(context),
+        Expanded(child: _buildOutlinedSeedContainer(context)),
         kVerticalSpacer,
-        _buildShuffledMnemonicCopy(),
-        const Spacer(),
+        Expanded(child: _buildShuffledMnemonicCopy()),
+        kVerticalSpacer,
         _buildFinishButton(context),
       ],
     );
@@ -129,68 +128,72 @@ class _ConfirmBackupScreenState extends State<ConfirmBackupScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
-            _buildInputtedMnemonic(),
+            Expanded(child: _buildInputtedMnemonic()),
           ],
         ),
       ),
     );
   }
 
-  Wrap _buildInputtedMnemonic() {
-    return Wrap(
-      runSpacing: kIconAndTextHorizontalSpacer.width! * 2,
-      spacing: kIconAndTextHorizontalSpacer.width!,
-      children: [
-        ..._mnemonicInputted.mapIndexed(
-          (index, word) {
-            final bool isSelected = activeInputSeedItemIndex == index;
+  Widget _buildInputtedMnemonic() {
+    return GridView.builder(
+      itemCount: _mnemonicInputted.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        childAspectRatio: 2.5,
+        crossAxisSpacing: kIconAndTextHorizontalSpacer.width! * 2,
+        crossAxisCount: 3,
+        mainAxisSpacing: kIconAndTextHorizontalSpacer.width!,
+      ),
+      itemBuilder: (_, index) {
+        final bool isSelected = activeInputSeedItemIndex == index;
+        final String word = _mnemonicInputted[index];
 
-            return SeedItem(
-              isSelected: isSelected,
-              onChange: () {
-                if (_mnemonicInputted[index].isEmpty) {
-                  activeInputSeedItemIndex = index;
-                } else {
-                  activeInputSeedItemIndex = index;
-                }
-                if (isSelected) {
-                  _mnemonicInputted[index] = '';
-                }
-                setState(() {});
-              },
-              text: word,
-            );
+        return SeedItem(
+          isSelected: isSelected,
+          onChange: () {
+            if (_mnemonicInputted[index].isEmpty) {
+              activeInputSeedItemIndex = index;
+            } else {
+              activeInputSeedItemIndex = index;
+            }
+            if (isSelected) {
+              _mnemonicInputted[index] = '';
+            }
+            setState(() {});
           },
-        ),
-      ],
+          text: word,
+        );
+      },
     );
   }
 
-  Wrap _buildShuffledMnemonicCopy() {
-    return Wrap(
-      runSpacing: kIconAndTextHorizontalSpacer.width! * 2,
-      spacing: kIconAndTextHorizontalSpacer.width!,
-      children: [
-        ..._mnemonicShuffledCopy.mapIndexed(
-          (index, word) {
-            final bool isDisabled = _mnemonicInputted.contains(word);
+  Widget _buildShuffledMnemonicCopy() {
+    return GridView.builder(
+      itemCount: _mnemonicShuffledCopy.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        childAspectRatio: 2.5,
+        crossAxisSpacing: kIconAndTextHorizontalSpacer.width! * 2,
+        crossAxisCount: 3,
+        mainAxisSpacing: kIconAndTextHorizontalSpacer.width!,
+      ),
+      itemBuilder: (_, index) {
+        final String word = _mnemonicShuffledCopy[index];
+        final bool isDisabled = _mnemonicInputted.contains(word);
 
-            return SeedItem(
-              isSelected: false,
-              isDisabled: isDisabled,
-              onChange: () {
-                if (!isDisabled) {
-                  setState(() {
-                    _mnemonicInputted[activeInputSeedItemIndex] = word;
-                    ++activeInputSeedItemIndex;
-                  });
-                }
-              },
-              text: word,
-            );
+        return SeedItem(
+          isSelected: false,
+          isDisabled: isDisabled,
+          onChange: () {
+            if (!isDisabled) {
+              setState(() {
+                _mnemonicInputted[activeInputSeedItemIndex] = word;
+                ++activeInputSeedItemIndex;
+              });
+            }
           },
-        ),
-      ],
+          text: word,
+        );
+      },
     );
   }
 
@@ -201,20 +204,22 @@ class _ConfirmBackupScreenState extends State<ConfirmBackupScreen> {
           ? () {
               if (listEquals(_mnemonic, _mnemonicInputted)) {
                 _doMnemonicsMatch = true;
-                sharedPrefsService
-                    .put(
+                sharedPrefs
+                    .setBool(
                   kIsBackedUpKey,
                   true,
                 )
                     .then(
                   (_) {
-                    final BackedUpSeedNotifier backedUpSeedNotifier =
-                        Provider.of<BackedUpSeedNotifier>(
-                      context,
-                      listen: false,
-                    );
-                    backedUpSeedNotifier.isBackedUp = true;
-                    _showConfirmationDialog(context);
+                    if (context.mounted) {
+                      final BackedUpSeedNotifier backedUpSeedNotifier =
+                          Provider.of<BackedUpSeedNotifier>(
+                        context,
+                        listen: false,
+                      );
+                      backedUpSeedNotifier.isBackedUp = true;
+                      _showConfirmationDialog(context);
+                    }
                   },
                 );
               } else {

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
@@ -8,9 +6,10 @@ import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 class AmountInfoCard extends StatelessWidget {
   final AccountInfo accountInfo;
   final String? Function(String) amountValidator;
+  final List<Token> coins;
   final TextEditingController controller;
   final FocusNode focusNode;
-  final VoidCallback? onTokenDropdownPressed;
+  final void Function(Token)? onTokenDropdownPressed;
   final FocusNode? recipientFocusNode;
   final Token selectedToken;
   final TextInputAction textInputAction;
@@ -19,6 +18,7 @@ class AmountInfoCard extends StatelessWidget {
   const AmountInfoCard({
     required this.accountInfo,
     required this.amountValidator,
+    required this.coins,
     required this.controller,
     required this.focusNode,
     required this.selectedToken,
@@ -42,8 +42,30 @@ class AmountInfoCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildTokenInfo(context),
-                    _buildBalanceInfo(context, accountInfo),
+                    DropdownMenu<Token>(
+                      width: 150.0,
+                      inputDecorationTheme: InputDecorationTheme(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(32.0),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                        filled: true,
+                        fillColor: context.colorScheme.scrim,
+                      ),
+                      initialSelection: coins.first,
+                      leadingIcon: _buildLeadingIcon(selectedToken),
+                      dropdownMenuEntries: _generateItems(),
+                      onSelected: (token) {
+                        if (token != null) {
+                          onTokenDropdownPressed?.call(token);
+                        }
+                      },
+                    ),
+                    kIconAndTextHorizontalSpacer,
+                    Expanded(
+                      child: _buildBalanceInfo(context, accountInfo),
+                    ),
                   ],
                 ),
               ],
@@ -60,6 +82,7 @@ class AmountInfoCard extends StatelessWidget {
                   context: context,
                   controller: controller,
                   focusNode: focusNode,
+                  maxDecimals: kZnnCoin.decimals,
                   onMaxPressed: () => _onMaxPressed(accountInfo),
                   recipientFocusNode: recipientFocusNode,
                   textInputAction: textInputAction,
@@ -74,35 +97,23 @@ class AmountInfoCard extends StatelessWidget {
     );
   }
 
-  Row _buildTokenInfo(BuildContext context) {
-    return Row(
-      children: [
-        Tooltip(
-          message: AppLocalizations.of(context)!.zenonTokenStandard,
-          child: Text(
-            AppLocalizations.of(context)!.zts,
-          ),
-        ),
-        kIconAndTextHorizontalSpacer,
-        TokenDropdown(
-          token: selectedToken,
-          onTap: onTokenDropdownPressed,
-        ),
-      ],
-    );
-  }
-
   Widget _buildBalanceInfo(
     BuildContext context,
     AccountInfo accountInfo,
   ) {
     final balance = accountInfo
         .getBalance(selectedToken.tokenStandard)
-        .addDecimals(coinDecimals);
-    final symbol = selectedToken.symbol;
+        .toStringWithDecimals(coinDecimals);
 
-    return Text(
-      '$balance $symbol',
+    return Tooltip(
+      message: balance,
+      child: Text(
+        balance,
+        style: Theme.of(context).textTheme.headlineSmall,
+        maxLines: 1,
+        textAlign: TextAlign.end,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 
@@ -113,7 +124,41 @@ class AmountInfoCard extends StatelessWidget {
 
     if (controller.text.isEmpty ||
         controller.text.extractDecimals(selectedToken.decimals) < maxBalance) {
-      controller.text = maxBalance.addDecimals(selectedToken.decimals);
+      controller.text = maxBalance.toStringWithDecimals(selectedToken.decimals);
     }
+  }
+
+  Widget _buildLeadingIcon(Token token) {
+    final Color iconColor = getTokenColor(token);
+    final Color bgColor = getTokenColor(token).withOpacity(0.3);
+
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: CircleAvatar(
+        backgroundColor: bgColor,
+        radius: 15.0,
+        child: SvgIcon(
+          iconFileName: 'zn_icon',
+          iconColor: iconColor,
+        ),
+      ),
+    );
+  }
+
+  List<DropdownMenuEntry<Token>> _generateItems() {
+    return List.generate(
+      coins.length,
+      (index) {
+        final Token coin = coins.elementAt(
+          index,
+        );
+
+        return DropdownMenuEntry(
+          value: coin,
+          label: coin.symbol,
+          leadingIcon: _buildLeadingIcon(coin),
+        );
+      },
+    );
   }
 }

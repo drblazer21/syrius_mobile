@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
-import 'package:stacked/stacked.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
@@ -56,7 +54,36 @@ class PlasmaListItem extends StatefulWidget {
 }
 
 class _PlasmaListItemState extends State<PlasmaListItem> {
+  final CancelPlasmaBloc _cancelPlasmaBloc = CancelPlasmaBloc();
   bool isLoading = false;
+
+  @override
+  void dispose() {
+    _cancelPlasmaBloc.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _cancelPlasmaBloc.stream.listen(
+      (event) {
+        if (event != null) {
+          setState(() {
+            isLoading = false;
+          });
+          widget.plasmaListBloc.refreshResults();
+        }
+      },
+      onError: (error) {
+        if (!mounted) return;
+        sendNotificationError(
+          AppLocalizations.of(context)!.plasmaCancelError,
+          error,
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +123,7 @@ class _PlasmaListItemState extends State<PlasmaListItem> {
   Widget _buildTitle(BuildContext context) {
     return Text(
       '${AppLocalizations.of(context)!.fused} '
-      '${widget.plasmaItem.qsrAmount.addDecimals(
+      '${widget.plasmaItem.qsrAmount.toStringWithDecimals(
         kQsrCoin.decimals,
       )} ${kQsrCoin.symbol}',
     );
@@ -113,37 +140,6 @@ class _PlasmaListItemState extends State<PlasmaListItem> {
         color: qsrColor,
         size: 20.0,
       ),
-    );
-  }
-
-  Widget _getCancelButtonViewModel(
-    PlasmaListBloc plasmaModel,
-    FusionEntry plasmaItem,
-  ) {
-    return ViewModelBuilder<CancelPlasmaBloc>.reactive(
-      onViewModelReady: (model) {
-        model.stream.listen(
-          (event) {
-            if (event != null) {
-              setState(() {
-                isLoading = false;
-              });
-              plasmaModel.refreshResults();
-            }
-          },
-          onError: (error) {
-            sendNotificationError(
-              AppLocalizations.of(context)!.plasmaCancelError,
-              error,
-            );
-          },
-        );
-      },
-      builder: (_, model, __) => _getCancelButton(
-        model,
-        plasmaItem.id.toString(),
-      ),
-      viewModelBuilder: () => CancelPlasmaBloc(),
     );
   }
 
@@ -182,7 +178,7 @@ class _PlasmaListItemState extends State<PlasmaListItem> {
     PlasmaListBloc plasmaModel,
   ) {
     return plasmaItem.isRevocable!
-        ? _getCancelButtonViewModel(plasmaModel, plasmaItem)
+        ? _getCancelButton(_cancelPlasmaBloc, plasmaItem.id.toString())
         : _getCancelCountdownTimer(plasmaItem, plasmaModel);
   }
 

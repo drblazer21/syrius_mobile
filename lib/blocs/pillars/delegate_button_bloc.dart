@@ -1,4 +1,5 @@
 import 'package:syrius_mobile/blocs/blocs.dart';
+import 'package:syrius_mobile/database/database.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/model/model.dart';
 import 'package:syrius_mobile/utils/utils.dart';
@@ -38,12 +39,11 @@ class DelegateButtonBloc extends BaseBloc<AccountBlockTemplate?> {
   void _sendSuccessDelegationNotification({
     required String pillarName,
   }) {
-    sl.get<NotificationsBloc>().addNotification(
-          WalletNotification(
+    sl.get<NotificationsService>().addNotification(
+          WalletNotificationsCompanion.insert(
             title: 'Delegated to $pillarName',
-            timestamp: DateTime.now().millisecondsSinceEpoch,
             details: 'Delegated to $pillarName from '
-                '${getLabel(kSelectedAddress!)}',
+                '${kSelectedAddress!.label}',
             type: NotificationType.delegateSuccess,
           ),
         );

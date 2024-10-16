@@ -59,7 +59,7 @@ class PinExponentialBackoffService {
     _countDownTimer = Timer.periodic(
       oneSecond,
       (timer) {
-        sharedPrefsService.put(
+        sharedPrefs.setInt(
           kPinCoolDownSecondsLeftKey,
           _countDownDuration.inSeconds,
         );
@@ -67,7 +67,7 @@ class PinExponentialBackoffService {
           _countDownDuration = _countDownDuration - oneSecond;
           countDownDurationNotifier.value = _countDownDuration.inSeconds;
         } else {
-          sharedPrefsService.put(
+          sharedPrefs.setInt(
             kPinCoolDownSecondsLeftKey,
             0,
           );
@@ -86,10 +86,9 @@ class PinExponentialBackoffService {
   }
 
   Duration _getSavedCountDownDuration() {
-    final int savedCountDownSecondsLeft = sharedPrefsService.get<int>(
+    final int savedCountDownSecondsLeft = sharedPrefs.getInt(
       kPinCoolDownSecondsLeftKey,
-      defaultValue: 0,
-    )!;
+    ) ?? 0;
 
     return Duration(seconds: savedCountDownSecondsLeft);
   }

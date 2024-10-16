@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:syrius_mobile/database/app_network_asset_entries.dart';
+import 'package:syrius_mobile/database/export.dart';
 import 'package:syrius_mobile/model/model.dart';
-import 'package:syrius_mobile/services/services.dart';
-import 'package:syrius_mobile/utils/constants.dart';
 
 Route? currentRoute;
 
-AppNetwork kSelectedNetwork = AppNetwork.znn;
+AppNetworkWithAssets? kSelectedAppNetworkWithAssets;
 AppCurrency kSelectedCurrency = AppCurrency.usd;
 
-String? kCurrentNode;
-List<String> kDbNodes = [];
-List<String> kDefaultNodes = [
-  kDefaultNode,
-];
-
-String? kSelectedAddress;
-List<String> kDefaultAddressList = [];
-Map<String, String> kAddressLabelMap = {};
+AppAddress? kBtcTestSelectedAddress;
+AppAddress? kBtcTaprootSelectedAddress;
+AppAddress? kSelectedAddress;
+AppAddress? kEthSelectedAddress;
+List<AppAddress> kBtcTestAddressList = [];
+List<AppAddress> kBtcTaprootAddressList = [];
+List<AppAddress> kDefaultAddressList = [];
+List<AppAddress> kEthDefaultAddressList = [];
 
 bool kIsStrongboxSupported = false;
 BiometricType? kBiometricTypeSupport;
+
+int? kNumOfPillars;

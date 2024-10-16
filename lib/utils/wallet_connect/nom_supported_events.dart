@@ -1,0 +1,4 @@
+enum NomSupportedEvents {
+  chainIdChange,
+  addressChange;
+}

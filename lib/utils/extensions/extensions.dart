@@ -35,9 +35,15 @@ extension FixedNumDecimals on double {
 }
 
 extension BigIntExtensions on BigInt {
-  String addDecimals(int decimals) {
-    return BigDecimal.createAndStripZerosForScale(this, decimals, 0)
-        .toPlainString();
+  String toStringWithDecimals(int decimals) {
+    return addDecimals(decimals).toPlainString();
+  }
+
+  BigDecimal addDecimals(int decimals) {
+    if (this == BigInt.zero) {
+      return BigDecimal.zero;
+    }
+    return BigDecimal.createAndStripZerosForScale(this, decimals, 0);
   }
 }
 
@@ -46,5 +52,27 @@ extension ShortString on String {
     final longString = this;
     return '${longString.substring(0, 6)}...'
         '${longString.substring(longString.length - 6)}';
+  }
+}
+
+// This extension takes other list with fewer elements and creates a single one
+// by interleaving them, starting with the first element of the first list,
+// then the first element of the second list. If second list runs out of elements
+// then we continue with the elements from the first list
+extension ZipTwoLists on List {
+  List<T> zip<T>(List<T> smallerList) {
+    return fold(
+      <T>[],
+          (previousValue, element) {
+        final int elementIndex = indexOf(element);
+        previousValue.add(element as T);
+        if (elementIndex < smallerList.length) {
+          previousValue.add(
+            smallerList[elementIndex],
+          );
+        }
+        return previousValue;
+      },
+    );
   }
 }

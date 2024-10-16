@@ -4,7 +4,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
@@ -62,7 +61,7 @@ class _StakeRewardState extends State<StakeReward> {
                     style: context.textTheme.titleSmall,
                   ),
                   Text(
-                    '${NumberFormat().format(qsrAmountToCollect.addDecimals(kQsrCoin.decimals).toNum())} ${kQsrCoin.symbol}',
+                    '${NumberFormat().format(qsrAmountToCollect.toStringWithDecimals(kQsrCoin.decimals).toNum())} ${kQsrCoin.symbol}',
                     style: context.textTheme.headlineLarge?.copyWith(
                       color: qsrColor,
                     ),

@@ -5,7 +5,7 @@ import 'package:syrius_mobile/widgets/widgets.dart';
 Future<T?> showDialogWithNoAndYesOptions<T>({
   required BuildContext context,
   required String title,
-  required VoidCallback onYesButtonPressed,
+  VoidCallback? onYesButtonPressed,
   bool isBarrierDismissible = false,
   VoidCallback? onNoButtonPressed,
   Widget? content,
@@ -34,7 +34,7 @@ Future<T?> showDialogWithNoAndYesOptions<T>({
           ),
           TextButton(
             onPressed: () {
-              onYesButtonPressed.call();
+              onYesButtonPressed?.call();
               Navigator.pop(context, true);
             },
             child: Text(

@@ -2,10 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:stacked/stacked.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
 import 'package:syrius_mobile/main.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
@@ -29,7 +27,7 @@ class _SendScreenState extends State<SendScreen> {
   String get _amount => _amountController.text;
   String get _recipient => _recipientController.text;
 
-  SendPaymentBloc _sendPaymentBloc = SendPaymentBloc();
+  final SendPaymentBloc _sendPaymentBloc = SendPaymentBloc();
 
   @override
   void initState() {
@@ -48,18 +46,18 @@ class _SendScreenState extends State<SendScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final address = getAddress();
-    final shortAddress = shortenWalletAddress(address);
+    final address = selectedAddress;
+    final shortAddress = shortenWalletAddress(address.hex);
     final appBarTitle =
         '${AppLocalizations.of(context)!.sendScreenTitle} $shortAddress';
 
     return CustomAppbarScreen(
       appbarTitle: appBarTitle,
-      child: AppStreamBuilder<Map<String, AccountInfo>?>(
+      child: AppStreamBuilder<AccountInfo>(
         errorHandler: (a) {},
         stream: sl.get<BalanceBloc>().stream,
         builder: (snapshot) {
-          final AccountInfo accountInfo = snapshot![kSelectedAddress]!;
+          final AccountInfo accountInfo = snapshot;
           return _buildBody(accountInfo);
         },
         customErrorWidget: (String error) {
@@ -105,7 +103,7 @@ class _SendScreenState extends State<SendScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildSendBlocWithWidget(context, accountInfo),
+            _buildSendButton(accountInfo, context, _sendPaymentBloc),
           ],
         ),
       ],
@@ -126,20 +124,14 @@ class _SendScreenState extends State<SendScreen> {
         _selectedToken.decimals,
         BigInt.zero,
       ),
+      coins: kDualCoin,
       controller: _amountController,
       focusNode: _amountFocusNode,
-      onTokenDropdownPressed: () {
-        showTokenListScreen(
-          context: context,
-          onSelect: (selectedToken) {
-            setState(() {
-              _amountController.clear();
-              _selectedToken = selectedToken;
-            });
-          },
-          accountInfo: accountInfo,
-          selectedToken: _selectedToken,
-        );
+      onTokenDropdownPressed: (selectedToken) {
+        setState(() {
+          _amountController.clear();
+          _selectedToken = selectedToken;
+        });
       },
       recipientFocusNode: _recipientFocusNode,
       selectedToken: _selectedToken,
@@ -164,21 +156,6 @@ class _SendScreenState extends State<SendScreen> {
 
         callback?.call(value);
       },
-    );
-  }
-
-  Widget _buildSendBlocWithWidget(
-    BuildContext context,
-    AccountInfo accountInfo,
-  ) {
-    return ViewModelBuilder<SendPaymentBloc>.reactive(
-      onViewModelReady: (model) {
-        _sendPaymentBloc = model;
-      },
-      builder: (_, model, __) {
-        return _buildSendButton(accountInfo, context, model);
-      },
-      viewModelBuilder: () => SendPaymentBloc(),
     );
   }
 
@@ -232,7 +209,7 @@ class _SendScreenState extends State<SendScreen> {
           BottomSheetInfoRow(
             context: context,
             leftContent: AppLocalizations.of(context)!.fromAddress,
-            rightContent: shortenWalletAddress(kSelectedAddress!),
+            rightContent: shortenWalletAddress(kSelectedAddress!.hex),
           ),
           BottomSheetInfoRow(
             context: context,
@@ -269,15 +246,16 @@ class _SendScreenState extends State<SendScreen> {
           null;
 
   void _onSendPaymentPressed(SendPaymentBloc model) {
-    Navigator.pop(context);
     model.sendTransfer(
       context: context,
-      fromAddress: kSelectedAddress!,
+      fromAddress: kSelectedAddress!.hex,
       toAddress: _recipient,
       amount: _amount.extractDecimals(_selectedToken.decimals),
       token: _selectedToken,
     );
     _amountController.clear();
     _recipientController.clear();
+    Navigator.pop(context);
+    showTransactionInProgressBottomSheet(context: context);
   }
 }

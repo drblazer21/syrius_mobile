@@ -68,7 +68,7 @@ class _StakeDurationState extends State<StakeDuration> {
                 ],
               ),
             ),
-            Slider(
+            Slider.adaptive(
               min: 1,
               max: 12,
               value: numberOfMonths.toDouble(),

@@ -1,7 +1,8 @@
 import 'dart:io';
 
-import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/utils/constants.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
@@ -56,7 +57,11 @@ mixin FileUtils {
       key: kKeyStoreKey,
     );
     await secureStorageUtil.deleteAll();
-    await Hive.deleteFromDisk();
+    await db.close();
+    final Directory directory = await getApplicationDocumentsDirectory();
+    final File dbFile =
+        File(path.join(directory.path, '$kDatabaseName.sqlite'));
+    await deleteFile(dbFile.path);
     await FileUtils.deleteZnnDefaultCacheDirectory();
     await FileUtils.deleteZnnDefaultWalletDirectory();
     exit(0);

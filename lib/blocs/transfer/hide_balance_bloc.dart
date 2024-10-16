@@ -5,10 +5,9 @@ import 'package:syrius_mobile/utils/utils.dart';
 class HideBalanceBloc extends BaseBloc<bool> {
   void toggleHideBalance() {
     try {
-      final bool isHideBalance = sharedPrefsService.get<bool>(
+      final bool isHideBalance = sharedPrefs.getBool(
         kIsHideBalanceKey,
-        defaultValue: false,
-      )!;
+      ) ?? false;
       addEvent(isHideBalance);
     } catch (e) {
       addError(e);

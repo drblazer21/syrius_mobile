@@ -19,10 +19,9 @@ class _ScreenshotScreenState extends State<ScreenshotScreen> {
   @override
   void initState() {
     super.initState();
-    _isScreenshotFeatureEnabled = sharedPrefsService.get<bool>(
+    _isScreenshotFeatureEnabled = sharedPrefs.getBool(
       kIsScreenshotFeatureEnabledKey,
-      defaultValue: false,
-    )!;
+    ) ?? false;
   }
 
   @override
@@ -51,8 +50,9 @@ class _ScreenshotScreenState extends State<ScreenshotScreen> {
     return Switch(
       value: _isScreenshotFeatureEnabled,
       onChanged: (bool value) {
-        sharedPrefsService.put(kIsScreenshotFeatureEnabledKey, value).then(
+        sharedPrefs.setBool(kIsScreenshotFeatureEnabledKey, value).then(
           (_) {
+            if (!mounted) return;
             final ScreenshotFeatureNotifier screenshotFeatureNotifier =
                 Provider.of<ScreenshotFeatureNotifier>(context, listen: false);
 

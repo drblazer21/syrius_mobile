@@ -9,20 +9,15 @@ class SecureStorageUtil {
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
   );
 
-  SecureStorageUtil() {
-    initSecureStorage();
-  }
-
   Future<void> initSecureStorage() async {
     const String firstRunKey = 'firstRun';
 
-    final bool isFirstRun = sharedPrefsService.get<bool>(
+    final bool isFirstRun = sharedPrefs.getBool(
       firstRunKey,
-      defaultValue: true,
-    )!;
+    ) ?? true;
     if (isFirstRun) {
       await _storage.deleteAll();
-      await sharedPrefsService.put(firstRunKey, false);
+      await sharedPrefs.setBool(firstRunKey, false);
     }
   }
 

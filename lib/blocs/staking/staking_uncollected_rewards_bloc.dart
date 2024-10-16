@@ -8,6 +8,6 @@ class StakingUncollectedRewardsBloc
   @override
   Future<UncollectedReward> getDataAsync() =>
       zenon.embedded.stake.getUncollectedReward(
-        Address.parse(kSelectedAddress!),
+        Address.parse(kSelectedAddress!.hex),
       );
 }

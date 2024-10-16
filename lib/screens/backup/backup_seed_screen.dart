@@ -36,10 +36,10 @@ class _BackupSeedScreenState extends State<BackupSeedScreen> {
   bool _shouldShowCopySeedButton = false;
 
   final ValueNotifier<int> _lastTimeSeedWasAccessedNotifier = ValueNotifier(
-    sharedPrefsService.get<int>(
-      kLastTimeSeedWasShownKey,
-      defaultValue: 0,
-    )!,
+    sharedPrefs.getInt(
+          kLastTimeSeedWasShownKey,
+        ) ??
+        0,
   );
 
   @override
@@ -62,10 +62,10 @@ class _BackupSeedScreenState extends State<BackupSeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isBackedUp = sharedPrefsService.get<bool>(
-      kIsBackedUpKey,
-      defaultValue: false,
-    )!;
+    final bool isBackedUp = sharedPrefs.getBool(
+          kIsBackedUpKey,
+        ) ??
+        false;
 
     return CustomAppbarScreen(
       appbarTitle: AppLocalizations.of(context)!.backupWalletTitle,
@@ -153,21 +153,24 @@ class _BackupSeedScreenState extends State<BackupSeedScreen> {
       children: [
         _buildLastTimeSeedWasAccessed(context),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 25.0),
-          child: SvgIcon(
-            iconFileName: _mnemonic.length == 12 ? 'seed_12' : 'seed_24',
-            iconColor: context.colorScheme.primary,
-            size: 20.0,
-          ),
-        ),
-        Padding(
           padding: const EdgeInsets.only(bottom: 15),
-          child: Text(
-            _mnemonic.length == 12
-                ? AppLocalizations.of(context)!.backupSeed12Title
-                : AppLocalizations.of(context)!.backupSeed24Title,
-            style: context.textTheme.titleMedium,
-            textAlign: TextAlign.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _mnemonic.length == 12
+                    ? AppLocalizations.of(context)!.backupSeed12Title
+                    : AppLocalizations.of(context)!.backupSeed24Title,
+                style: context.textTheme.titleMedium,
+                textAlign: TextAlign.center,
+              ),
+              kIconAndTextHorizontalSpacer,
+              SvgIcon(
+                iconFileName: _mnemonic.length == 12 ? 'seed_12' : 'seed_24',
+                iconColor: context.colorScheme.primary,
+                size: 20.0,
+              ),
+            ],
           ),
         ),
         Expanded(
@@ -269,7 +272,7 @@ class _BackupSeedScreenState extends State<BackupSeedScreen> {
   void _saveDateTime() {
     _lastTimeSeedWasAccessedNotifier.value =
         DateTime.now().millisecondsSinceEpoch;
-    sharedPrefsService.put(
+    sharedPrefs.setInt(
       kLastTimeSeedWasShownKey,
       _lastTimeSeedWasAccessedNotifier.value,
     );
@@ -296,7 +299,7 @@ class _BackupSeedScreenState extends State<BackupSeedScreen> {
   Widget _buildBackupSeedAccessedWarning(BuildContext context) {
     return WarningWidget(
       iconData: Icons.warning,
-      fillColor: context.colorScheme.background,
+      fillColor: context.colorScheme.surface,
       textColor: context.colorScheme.error,
       text: AppLocalizations.of(context)!.backupSeedAlertAccessed,
     );

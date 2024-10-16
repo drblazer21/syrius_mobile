@@ -43,13 +43,13 @@ class AlphaVirtualKeyboardItem extends StatelessWidget {
   Icon _buildBackSpaceIcon(BuildContext context) {
     return Icon(
       Icons.backspace_outlined,
-      color: context.colorScheme.onBackground,
+      color: context.colorScheme.onSurface,
     );
   }
 
   Text _buildText(BuildContext context) {
     final Color color = isEnabled
-        ? context.colorScheme.onBackground
+        ? context.colorScheme.onSurface
         : context.colorScheme.outline;
     return Text(
       content!,

@@ -9,7 +9,7 @@ class PillarRewardsHistoryBloc
   Future<RewardHistoryList> getDataAsync() async {
     final RewardHistoryList rewardHistoryList =
         await zenon.embedded.pillar.getFrontierRewardByPage(
-      Address.parse(kSelectedAddress!),
+      Address.parse(kSelectedAddress!.hex),
       pageSize: kStandardChartNumDays.toInt(),
     );
     if (rewardHistoryList.list.any(_entryHasRewards)) {

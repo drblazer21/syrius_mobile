@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:syrius_mobile/screens/screens.dart';
-import 'package:syrius_mobile/utils/utils.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -11,34 +9,18 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  late NotificationsProvider getNotificationProvider;
-
-  @override
-  void initState() {
-    super.initState();
-    getNotificationProvider = context.read<NotificationsProvider>();
-  }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
+    return PopScope<Object?>(
       canPop: false,
-      onPopInvoked: (bool didPop) {
+      onPopInvokedWithResult: (bool didPop, Object? _) {
         if (didPop) {
           return;
         }
-        getNotificationProvider.getNotificationsFromDb();
         Navigator.pop(context);
       },
-      child: NotificationsPageChild(
-        notificationsProvider: getNotificationProvider,
-      ),
+      child: const NotificationsPageChild(),
     );
-  }
-
-  @override
-  void dispose() {
-    getNotificationProvider.dispose();
-    super.dispose();
   }
 }

@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:syrius_mobile/blocs/blocs.dart';
+import 'package:syrius_mobile/database/database.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/model/model.dart';
 import 'package:syrius_mobile/utils/utils.dart';
@@ -9,7 +9,7 @@ void sendNotificationError(
   String title,
   dynamic error,
 ) {
-  sl.get<NotificationsBloc>().addErrorNotification(
+  sl.get<NotificationsService>().addErrorNotification(
         title,
         error as Object,
       );
@@ -21,13 +21,13 @@ void sendNodeSyncingNotification() {
       if (syncInfo.targetHeight == 0 ||
           syncInfo.currentHeight == 0 ||
           (syncInfo.targetHeight - syncInfo.currentHeight) > 20) {
-        sl.get<NotificationsBloc>().addNotification(
-              WalletNotification(
+        sl.get<NotificationsService>().addNotification(
+              WalletNotificationsCompanion.insert(
+                type: NotificationType.nodeSyncing,
                 title:
                     'The node is still syncing with the network. Please wait '
                     'until the loading circle turns green before sending '
                     'any transactions',
-                timestamp: DateTime.now().millisecondsSinceEpoch,
                 details:
                     'The information displayed in the wallet does not reflect '
                     'the most recent network state. Operations should not '
@@ -50,7 +50,7 @@ List<GroupedNotifications> getSortedWalletNotificationItems(
 
     ///taking only 2022-04-18 part from 2022-04-18 12:50:01.000
     (WalletNotification item) {
-      final DateTime dateTime = timestampToDateTime(item.timestamp!);
+      final DateTime dateTime = item.createdAt;
       return DateTime(dateTime.year, dateTime.month, dateTime.day);
     },
   );

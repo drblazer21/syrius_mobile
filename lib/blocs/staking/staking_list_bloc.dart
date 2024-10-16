@@ -9,7 +9,7 @@ class StakingListBloc extends InfiniteScrollBloc<StakeEntry> {
   @override
   Future<List<StakeEntry>> getData(int pageKey, int pageSize) async =>
       (await zenon.embedded.stake.getEntriesByAddress(
-        Address.parse(kSelectedAddress!),
+        Address.parse(kSelectedAddress!.hex),
         pageIndex: pageKey,
         pageSize: pageSize,
       ))

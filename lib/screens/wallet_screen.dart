@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
 import 'package:syrius_mobile/main.dart';
+import 'package:syrius_mobile/model/block_chain.dart';
 import 'package:syrius_mobile/utils/notifiers/backed_up_seed_notifier.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
+import 'package:web3dart/web3dart.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 
 class WalletScreen extends StatefulWidget {
@@ -17,50 +19,32 @@ class WalletScreen extends StatefulWidget {
 }
 
 class _WalletScreenState extends State<WalletScreen> {
-  late NotificationsProvider _getNotificationProvider;
-
-  final TextEditingController _chainIdController = TextEditingController();
-  final GlobalKey<NestedScrollViewState> globalKey = GlobalKey();
-
-  String get _chainId => _chainIdController.text;
-
   @override
   void initState() {
     super.initState();
-    _getNotificationProvider = context.read<NotificationsProvider>();
-    _getNotificationProvider.getNotificationsFromDb();
-    sl.get<ZenonToolsPriceBloc>().getPrice();
+    sl.get<PriceInfoBloc>().getPrice();
   }
 
   @override
   Widget build(BuildContext context) {
+    const double leadingWidth = 100.0;
+
     return CustomAppbarScreen(
-      leadingWidth: double.infinity,
-      leadingWidget: Consumer<SelectedAddressNotifier>(
-        builder: (_, __, ___) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildAddressLabel(context),
-                  _buildChainIdDropdown(context),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: kMinInteractiveDimension),
-                child: _getGenerationStatus(),
-              ),
-            ],
-          );
-        },
-      ),
+      appbarTitleWidget: _buildAppNetworkDropdown(),
+      leadingWidth: leadingWidth,
+      leadingWidget: _buildLeadingWidget(),
       withLateralPadding: false,
       withBottomPadding: false,
-      actionWidget: notificationsIcon(
-        context,
+      actionWidget: SizedBox(
+        width: leadingWidth,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            notificationsIcon(
+              context,
+            ),
+          ],
+        ),
       ),
       child: Column(
         children: [
@@ -91,145 +75,23 @@ class _WalletScreenState extends State<WalletScreen> {
               );
             },
           ),
-          const Expanded(
-            child: AssetsZenonTools(),
+          Expanded(
+            child: AssetsZenonTools(
+              key: UniqueKey(),
+            ),
           ),
         ],
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _chainIdController.dispose();
-    _getNotificationProvider.dispose();
-    super.dispose();
-  }
-
-  Widget _buildChainIdDropdown(BuildContext context) {
-    final Text child = Text(
-      'Chain ID',
-      style: TextStyle(
-        color: context.colorScheme.primary,
-      ),
-    );
-
-    void onTap() {
-      showLoadingDialog(context);
-      getChainId().then(
-        (chainId) {
-          Navigator.pop(context);
-          showModalBottomSheetWithBody(
-            context: context,
-            title: AppLocalizations.of(context)!.chainIdentifier,
-            body: _buildChangeNodeIdDialog(currentChainId: chainId),
-          );
-        },
-      );
-    }
-
-    return _buildLeadingWidgetTextButton(
-      context: context,
-      child: child,
-      onTap: onTap,
-    );
-  }
-
-  Widget _buildAddressLabel(BuildContext context) {
-    final Text child = Text(
-      kAddressLabelMap[getAddress()]!,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-
-    void onTap() {
-      showManageAddressScreen(context);
-    }
-
-    return _buildLeadingWidgetTextButton(
-      context: context,
-      child: child,
-      onTap: onTap,
-    );
-  }
-
-  TextButton _buildLeadingWidgetTextButton({
-    required BuildContext context,
-    required Widget child,
-    required VoidCallback onTap,
-  }) {
-    return TextButton(
-      style: TextButton.styleFrom(
-        backgroundColor: Colors.transparent,
-        foregroundColor: context.colorScheme.onBackground,
-        minimumSize: const Size(30.0, 15.0),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 15.0,
-        ),
-      ),
-      onPressed: onTap,
-      child: child,
-    );
-  }
-
-  Widget _buildChangeNodeIdDialog({
-    required int currentChainId,
-  }) {
-    final String suffix = currentChainId == 1 ? ' - Alphanet' : '';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Current chain ID: $currentChainId$suffix',
-        ),
-        TextField(
-          controller: _chainIdController,
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
-          decoration: InputDecoration(
-            errorText: chainIdValidator(_chainId),
-            hintText: AppLocalizations.of(context)!.chainIdentifier,
-          ),
-          onChanged: (String? value) {
-            setState(() {});
-          },
-        ),
-        ValueListenableBuilder(
-          valueListenable: _chainIdController,
-          builder: (_, __, ___) {
-            return FilledButton(
-              onPressed: _isInputValid()
-                  ? () {
-                      saveChainId(_chainId);
-                      chainId = int.parse(_chainId);
-                      _chainIdController.clear();
-                      Navigator.pop(context);
-                    }
-                  : null,
-              child: Text(
-                AppLocalizations.of(context)!.save,
-              ),
-            );
-          },
-        ),
-      ].addSeparator(kVerticalSpacer),
-    );
-  }
-
-  bool _isInputValid() =>
-      chainIdValidator(_chainIdController.text) == null &&
-      _chainIdController.text.isNotEmpty;
-
-  Widget _getGenerationStatus() {
+  Widget _showPowGenerationStatus() {
     return StreamBuilder<PowStatus>(
       stream: sl.get<PowGeneratingStatusBloc>().stream,
       builder: (_, snapshot) {
+        Widget? plasmaIndicator;
         if (snapshot.hasData && snapshot.data == PowStatus.generating) {
-          return Tooltip(
+          plasmaIndicator = Tooltip(
             message: AppLocalizations.of(context)!.generatingPlasma,
             child: const SyriusLoadingWidget(
               size: 20.0,
@@ -237,13 +99,139 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
           );
         }
-        return Tooltip(
+        plasmaIndicator ??= Tooltip(
           message: AppLocalizations.of(context)!.plasmaGenerationIdle,
           child: const Icon(
             Icons.flash_on,
           ),
         );
+
+        return Padding(
+          padding: const EdgeInsets.only(
+            left: 12.0,
+          ),
+          child: Row(
+            children: [plasmaIndicator],
+          ),
+        );
       },
     );
+  }
+
+  Widget _showGasPrice() {
+    return StreamBuilder<GasPriceState>(
+      initialData: GasPriceInitial(),
+      stream: sl.get<GasPriceBloc>().stream,
+      builder: (_, snapshot) {
+        String message = '? Gwei';
+
+        switch (snapshot.data!) {
+          case GasPriceInitial _:
+            return Padding(
+              padding: const EdgeInsets.only(
+                left: 12.0,
+              ),
+              child: Row(
+                children: [
+                  Skeletonizer(
+                    justifyMultiLineText: false,
+                    effect: const ShimmerEffect(
+                      baseColor: Colors.white30,
+                      highlightColor: Colors.white54,
+                    ),
+                    textBoneBorderRadius:
+                        const TextBoneBorderRadius.fromHeightFactor(0.5),
+                    ignoreContainers: true,
+                    child: Text(
+                      maxLines: 1,
+                      message,
+                      style: context.textTheme.bodyLarge,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          case GasPriceLoaded _:
+            final GasPriceLoaded gasPriceLoaded =
+                snapshot.data! as GasPriceLoaded;
+            final double priceInGwei =
+                gasPriceLoaded.gasPrice.getValueInUnit(EtherUnit.gwei);
+            message = '${priceInGwei.round()} Gwei';
+          case GasPriceError _:
+            message = 'Error: ${(snapshot.data! as GasPriceError).message}';
+        }
+        return Padding(
+          padding: const EdgeInsets.only(
+            left: 12.0,
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.local_gas_station,
+              ),
+              Expanded(
+                child: Text(
+                  message,
+                  maxLines: 1,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAppNetworkDropdown() {
+    return TextButton.icon(
+      style: FilledButton.styleFrom(
+        backgroundColor: Theme.of(context).primaryColor,
+        textStyle: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w500,
+        ),
+        padding: const EdgeInsets.only(
+          left: 18.0,
+          right: 2,
+        ),
+      ),
+      icon: const Icon(
+        Icons.arrow_drop_down,
+      ),
+      iconAlignment: IconAlignment.end,
+      label: Text(
+        kSelectedAppNetworkWithAssets!.network.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      onPressed: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          showDragHandle: true,
+          useSafeArea: true,
+          builder: (_) => DraggableScrollableSheet(
+            expand: false,
+            builder: (_, scrollController) => AllNetworks(
+              onNetworkChanged: () {
+                setState(() {});
+              },
+              scrollController: scrollController,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLeadingWidget() {
+    switch (kSelectedAppNetworkWithAssets!.network.blockChain) {
+      case BlockChain.nom:
+        return _showPowGenerationStatus();
+      case BlockChain.evm:
+        return _showGasPrice();
+      default:
+        return const BtcEstimateFeeWidget();
+    }
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:syrius_mobile/blocs/blocs.dart';
+import 'package:syrius_mobile/database/export.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/model/model.dart';
 import 'package:syrius_mobile/utils/utils.dart';
@@ -15,7 +16,7 @@ class PlasmaStatsBloc extends BaseBloc<List<PlasmaInfoWrapper>>
   Future<void> get() async {
     try {
       final List<PlasmaInfoWrapper> plasmaInfoWrapper = await Future.wait(
-        kDefaultAddressList.map((e) => getPlasma(e)).toList(),
+        kDefaultAddressList.map((e) => getPlasma(e.toZnnAddress())).toList(),
       );
       addEvent(plasmaInfoWrapper);
     } catch (e) {
@@ -23,12 +24,15 @@ class PlasmaStatsBloc extends BaseBloc<List<PlasmaInfoWrapper>>
     }
   }
 
-  Future<PlasmaInfoWrapper> getPlasma(String address) async {
+  Future<PlasmaInfoWrapper> getPlasma(Address address) async {
     try {
       final PlasmaInfo plasmaInfo = await zenon.embedded.plasma.get(
-        Address.parse(address),
+        address,
       );
-      return PlasmaInfoWrapper(address: address, plasmaInfo: plasmaInfo);
+      return PlasmaInfoWrapper(
+        address: address.toString(),
+        plasmaInfo: plasmaInfo,
+      );
     } catch (e) {
       addError(e);
       rethrow;

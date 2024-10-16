@@ -12,7 +12,14 @@ class WalletConnectCodeScanner extends StatelessWidget {
     return SyriusQrCodeScanner(
       context: context,
       validator: (value) {
-        return canParseWalletConnectUri(value);
+        for (final barcode in value.barcodes) {
+          final String? displayValue = barcode.displayValue;
+          if (displayValue != null && canParseWalletConnectUri(displayValue)) {
+            return true;
+          }
+        }
+
+        return false;
       },
       onScan: onScan,
     );

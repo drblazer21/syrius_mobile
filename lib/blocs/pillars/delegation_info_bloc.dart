@@ -7,6 +7,6 @@ class DelegationInfoBloc extends BaseBlocWithRefreshMixin<DelegationInfo?> {
   @override
   Future<DelegationInfo?> getDataAsync() =>
       zenon.embedded.pillar.getDelegatedPillar(
-        Address.parse(kSelectedAddress!),
+        Address.parse(kSelectedAddress!.hex),
       );
 }

@@ -1,7 +1,7 @@
 import 'package:syrius_mobile/blocs/blocs.dart';
+import 'package:syrius_mobile/database/database.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/model/model.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 
@@ -26,7 +26,7 @@ class StakingOptionsBloc extends BaseBloc<AccountBlockTemplate?> {
           await Future.delayed(kDelayAfterBlockCreationCall);
           refreshBalanceAndTx();
           _sendSuccessStakingNotification(
-            amount: amount.addDecimals(coinDecimals),
+            amount: amount.toStringWithDecimals(coinDecimals),
           );
           addEvent(response);
         },
@@ -43,13 +43,12 @@ class StakingOptionsBloc extends BaseBloc<AccountBlockTemplate?> {
   void _sendSuccessStakingNotification({
     required String amount,
   }) {
-    sl.get<NotificationsBloc>().addNotification(
-          WalletNotification(
+    sl.get<NotificationsService>().addNotification(
+          WalletNotificationsCompanion.insert(
             title: 'Staked $amount ${kZnnCoin.symbol} '
-                'for ${getLabel(kSelectedAddress!)}',
-            timestamp: DateTime.now().millisecondsSinceEpoch,
+                'for ${kSelectedAddress!.label}',
             details: 'Staked $amount ${kZnnCoin.symbol} '
-                'for ${getLabel(kSelectedAddress!)}',
+                'for ${kSelectedAddress!.label}',
             type: NotificationType.stakeSuccess,
           ),
         );

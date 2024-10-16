@@ -172,10 +172,9 @@ class _KeyStoreAuthenticationState extends State<KeyStoreAuthentication>
       if (!mounted) return;
       showAccessWalletScreen(context, isReplace: true);
     } else {
-      final bool isWalletEncryptedWithBiometry = sharedPrefsService.get(
+      final bool isWalletEncryptedWithBiometry = sharedPrefs.getBool(
         kEncryptWalletWithBiometryKey,
-        defaultValue: false,
-      )!;
+      ) ?? false;
 
       final AuthenticationService authenticationService =
           AuthenticationService();
@@ -227,7 +226,6 @@ class _KeyStoreAuthenticationState extends State<KeyStoreAuthentication>
   }
 
   Future<void> _initializeApp() async {
-    await initApp();
     await initWalletAfterDecrypt();
   }
 }

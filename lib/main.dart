@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,18 +12,18 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_portal/flutter_portal.dart';
 import 'package:flutterlifecyclehooks/flutterlifecyclehooks.dart';
 import 'package:get_it/get_it.dart';
-import 'package:hive/hive.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:retry/retry.dart';
 import 'package:secp256r1/secp256r1.dart';
 import 'package:secure_content/secure_content.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
-import 'package:syrius_mobile/blocs/wallet_connect/i_chain.dart';
-import 'package:syrius_mobile/blocs/wallet_connect/nom_service.dart';
+import 'package:syrius_mobile/btc/bitcoin_service.dart';
+import 'package:syrius_mobile/database/export.dart';
+import 'package:syrius_mobile/eth_support/ethereum_service.dart';
 import 'package:syrius_mobile/l10n/all_locales.dart';
-import 'package:syrius_mobile/model/model.dart';
 import 'package:syrius_mobile/screens/screens.dart';
 import 'package:syrius_mobile/services/services.dart';
 import 'package:syrius_mobile/services/syrius_navigator_observer.dart';
@@ -34,8 +35,11 @@ GetIt sl = GetIt.instance;
 
 late IWeb3WalletService web3WalletService;
 late SecureStorageUtil secureStorageUtil;
-late SharedPrefsService sharedPrefsService;
+late SharedPreferences sharedPrefs;
 late Zenon zenon;
+late EthereumService eth;
+late BitcoinService btc;
+late Database db;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,7 +50,6 @@ Future<void> main() async {
   Provider.debugCheckInvalidValueType = null;
 
   ensureDirectoriesExist();
-  Hive.init((await getZnnDefaultCacheDirectory()).path);
 
   // Setup logger
   Logger.root.level = Level.ALL;
@@ -57,18 +60,6 @@ Future<void> main() async {
           '${record.error} ${record.stackTrace}\n');
     }
   });
-
-  // Register Hive adapters
-  Hive.registerAdapter(NotificationTypeAdapter());
-  Hive.registerAdapter(WalletNotificationAdapter());
-
-  // Setup WalletConnect
-  web3WalletService = Web3WalletService();
-  web3WalletService.create();
-  await retry(
-    () async => await web3WalletService.init(),
-    retryIf: (e) => e is SocketException || e is TimeoutException,
-  );
 
   // Setup services
   setup();
@@ -83,8 +74,8 @@ Future<void> main() async {
         ChangeNotifierProvider<SelectedAddressNotifier>(
           create: (_) => SelectedAddressNotifier(),
         ),
-        ChangeNotifierProvider<NotificationsProvider>(
-          create: (_) => NotificationsProvider(),
+        ChangeNotifierProvider<SelectedNetworkNotifier>(
+          create: (_) => SelectedNetworkNotifier(),
         ),
         ChangeNotifierProvider<ScreenshotFeatureNotifier>(
           create: (_) => ScreenshotFeatureNotifier(),
@@ -111,34 +102,43 @@ Future<void> main() async {
 }
 
 void setup() {
+  // Notifications
+  sl.registerSingleton<NotificationsService>(NotificationsService());
+
+  // Ethereum
+  sl.registerSingleton<EthereumService>(
+    EthereumServiceImpl(),
+  );
+
+  // Bitcoin
+  sl.registerSingleton<BitcoinService>(BitcoinService());
+
   sl.registerSingleton<SyriusNavigatorObserver>(SyriusNavigatorObserver());
   sl.registerSingleton<Zenon>(Zenon());
 
   // The variable is used by other dependencies, so we need to set it up early
   zenon = sl<Zenon>();
 
-  sl.registerLazySingletonAsync<SharedPrefsService>(
-    () => SharedPrefsService.getInstance().then((value) => value!),
-  );
+  eth = sl.get<EthereumService>();
+  btc = sl.get<BitcoinService>();
 
+  sl.registerSingleton<BtcActivityBloc>(BtcActivityBloc());
+  sl.registerSingleton<GasPriceBloc>(GasPriceBloc());
+  sl.registerSingleton<BtcEstimateFeeBloc>(BtcEstimateFeeBloc());
   sl.registerSingleton<PowGeneratingStatusBloc>(PowGeneratingStatusBloc());
   sl.registerSingleton<AutoReceiveTxWorker>(AutoReceiveTxWorker());
   sl.registerSingleton<PlasmaStatsBloc>(PlasmaStatsBloc());
   sl.registerSingleton<BalanceBloc>(BalanceBloc());
-  sl.registerSingleton<ZenonToolsPriceBloc>(ZenonToolsPriceBloc());
+  sl.registerSingleton<EthAccountBalanceBloc>(EthAccountBalanceBloc());
+  sl.registerSingleton<BtcAccountBalanceBloc>(BtcAccountBalanceBloc());
+  sl.registerSingleton<PriceInfoBloc>(PriceInfoBloc());
   sl.registerSingleton<HideBalanceBloc>(HideBalanceBloc());
   sl.registerSingleton<LatestTransactionsBloc>(
     LatestTransactionsBloc(),
   );
-  sl.registerSingleton<NotificationsBloc>(NotificationsBloc());
   sl.registerSingleton<PlasmaListBloc>(PlasmaListBloc());
 
   // WalletConnect
-  sl.registerSingleton<IWeb3WalletService>(web3WalletService);
-  sl.registerSingleton<IChain>(
-    NoMService(reference: NoMChainId.mainnet),
-    instanceName: NoMChainId.mainnet.chain(),
-  );
   sl.registerSingleton<WalletConnectPairingBloc>(WalletConnectPairingBloc());
   sl.registerSingleton<WalletConnectPairingsBloc>(
     WalletConnectPairingsBloc(),
@@ -163,7 +163,90 @@ void setup() {
 
 Future<void> initGlobalServices() async {
   // Setup SharedPrefs
-  sharedPrefsService = await sl.getAsync<SharedPrefsService>();
+  sharedPrefs = await SharedPreferences.getInstance();
+
+  // Drift
+  db = Database();
+
+  final int numOfSavedAppNetworks = await db.managers.appNetworks.count();
+
+  if (numOfSavedAppNetworks == 0) {
+    for (final network in kDefaultAppNetworks) {
+      final int id = await db.appNetworksDao.insert(network);
+      if (network == kEthereumMainnetNetwork) {
+        final List<NetworkAssetsCompanion> assetsWithForeignKey =
+            kDefaultEthereumMainnetAssets
+                .map(
+                  (e) => e.copyWith(network: Value(id)),
+                )
+                .toList();
+
+        await db.networkAssetsDao.insertMultiple(assetsWithForeignKey);
+      }
+      if (network == kSepoliaNetwork) {
+        final NetworkAssetsCompanion assetWithForeignKey =
+            kSepoliaCurrency.copyWith(
+          network: Value(id),
+        );
+
+        await db.networkAssetsDao.insert(assetWithForeignKey);
+      }
+      if (network == kSupernovaNetwork) {
+        final NetworkAssetsCompanion assetWithForeignKey =
+            kSupernovaZvmCurrency.copyWith(
+          network: Value(id),
+        );
+
+        await db.networkAssetsDao.insert(assetWithForeignKey);
+      }
+      if (network == kBitcoinSignet) {
+        final NetworkAssetsCompanion assetWithForeignKey =
+            kBitcoinSignetCurrency.copyWith(
+          network: Value(id),
+        );
+
+        await db.networkAssetsDao.insert(assetWithForeignKey);
+      }
+      if (network == kBitcoinMainnet) {
+        final NetworkAssetsCompanion assetWithForeignKey =
+            kBitcoinMainnetCurrency.copyWith(
+          network: Value(id),
+        );
+
+        await db.networkAssetsDao.insert(assetWithForeignKey);
+      }
+    }
+    await db.bookmarksDao.insertMultiple(kDefaultBookmarks);
+
+    final AppNetwork defaultAppNetwork =
+        await db.managers.appNetworks.filter((f) => f.id(1)).getSingle();
+
+    sharedPrefs.setInt(kSelectedAppNetworkIdKey, defaultAppNetwork.id);
+  }
+
+  final int? selectedAppNetworkId =
+      sharedPrefs.getInt(kSelectedAppNetworkIdKey);
+
+  final AppNetwork selectedAppNetwork = await db.managers.appNetworks
+      .filter((f) => f.id(selectedAppNetworkId!))
+      .getSingle();
+
+  final List<NetworkAsset> selectAppNetworkAssets =
+      await db.networkAssetsDao.getAllByNetworkId(selectedAppNetwork.id);
+
+  kSelectedAppNetworkWithAssets = (
+    assets: selectAppNetworkAssets,
+    network: selectedAppNetwork,
+  );
+
+  // Setup WalletConnect
+  web3WalletService = Web3WalletService();
+  web3WalletService.create();
+  await retry(
+    () async => await web3WalletService.init(),
+    retryIf: (e) => e is SocketException || e is TimeoutException,
+  );
+  sl.registerSingleton<IWeb3WalletService>(web3WalletService);
 
   // Setup SecureStorage
   secureStorageUtil = SecureStorageUtil();
@@ -199,25 +282,6 @@ class MyApp extends StatefulWidget {
 }
 
 class MyAppState extends State<MyApp> with LifecycleMixin {
-  late NotificationsBloc _notificationsBloc;
-
-  @override
-  void initState() {
-    super.initState();
-    _notificationsBloc = sl.get<NotificationsBloc>();
-    _notificationsBloc.stream.listen(
-      (WalletNotification? value) {
-        if (mounted) {
-          context.read<NotificationsProvider>().getNotificationsFromDb();
-          showNotificationSnackBar(
-            navState.currentState!.context,
-            walletNotification: value,
-          );
-        }
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([
@@ -225,9 +289,9 @@ class MyAppState extends State<MyApp> with LifecycleMixin {
       DeviceOrientation.portraitDown,
     ]);
 
-    const Color backgroundColor = Color.fromARGB(255, 15, 15, 15);
+    const Color surfaceColor = Color.fromARGB(255, 15, 15, 15);
     final ColorScheme colorScheme = ColorScheme.fromSeed(
-      background: backgroundColor,
+      surface: surfaceColor,
       brightness: Brightness.dark,
       seedColor: znnColor,
     );
@@ -241,13 +305,23 @@ class MyAppState extends State<MyApp> with LifecycleMixin {
         sl.get<SyriusNavigatorObserver>(),
       ],
       theme: ThemeData(
+        scaffoldBackgroundColor: surfaceColor,
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
-          backgroundColor: backgroundColor,
+          backgroundColor: surfaceColor,
           centerTitle: true,
+          elevation: 0.0,
+          scrolledUnderElevation: 0.0,
         ),
         cardTheme: const CardTheme(
           margin: EdgeInsets.zero,
+        ),
+        chipTheme: ChipThemeData(
+          labelStyle: const TextStyle(color: Colors.white),
+          side: BorderSide.none,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(50.0),
+          ),
         ),
         colorScheme: colorScheme,
         filledButtonTheme: FilledButtonThemeData(
@@ -366,7 +440,6 @@ class MyAppState extends State<MyApp> with LifecycleMixin {
 
   @override
   void dispose() {
-    _notificationsBloc.dispose();
     sl.unregister();
     super.dispose();
   }

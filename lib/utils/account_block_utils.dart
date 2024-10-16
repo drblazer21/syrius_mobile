@@ -15,15 +15,16 @@ enum ActionType {
   plasma,
   sentinel,
   autoReceive,
+  voteForProject,
 }
 
 Future<AccountBlockTemplate> createAccountBlock(
   AccountBlockTemplate transactionParams,
   String purposeOfGeneratingPlasma, {
-  KeyPair? blockSigningKey,
+  String? blockSigningAddress,
   void Function(PowStatus)? generatingPowCallback,
   bool waitForRequiredPlasma = false,
-  required ActionType actionType,
+  ActionType? actionType,
 }) async {
   final SyncInfo syncInfo = await zenon.stats.syncInfo();
   final bool nodeIsSynced = syncInfo.state == SyncState.syncDone ||
@@ -31,8 +32,10 @@ Future<AccountBlockTemplate> createAccountBlock(
           syncInfo.currentHeight > 0 &&
           (syncInfo.targetHeight - syncInfo.currentHeight) < 20);
   if (nodeIsSynced) {
-    final Address address = await blockSigningKey?.address ??
-        await zenon.defaultKeyPair!.getAddress();
+    final KeyPair blockSigningKeyPair = await getKeyPairFromAddress(
+      blockSigningAddress ?? kSelectedAddress!.hex,
+    );
+    final Address address = await blockSigningKeyPair.address;
     Logger('AccountBlockUtils')
         .log(Level.INFO, 'createAccountBlock', purposeOfGeneratingPlasma);
     try {
@@ -52,17 +55,17 @@ Future<AccountBlockTemplate> createAccountBlock(
 
       final bool needPlasma = await zenon.requiresPoW(
         transactionParams,
-        blockSigningKey: blockSigningKey,
+        blockSigningKey: blockSigningKeyPair,
       );
 
       if (needPlasma) {
         sl
-            .get<NotificationsBloc>()
+            .get<NotificationsService>()
             .sendPlasmaNotification(purposeOfGeneratingPlasma);
       }
       final AccountBlockTemplate response = await zenon.send(
         transactionParams,
-        currentKeyPair: blockSigningKey,
+        currentKeyPair: blockSigningKeyPair,
         generatingPowCallback: (status) async {
           addEventToPowGeneratingStatusBloc(status);
         },

@@ -2,9 +2,7 @@ import 'package:animate_gradient/animate_gradient.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:syrius_mobile/blocs/blocs.dart';
-import 'package:syrius_mobile/main.dart';
-import 'package:syrius_mobile/services/services.dart';
+import 'package:syrius_mobile/model/model.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/reusable_widgets/shape_toggle_widget.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
@@ -17,11 +15,11 @@ class AccountCard extends StatefulWidget {
 }
 
 class _AccountCardState extends State<AccountCard> {
-  @override
-  void initState() {
-    super.initState();
-    sl.get<BalanceBloc>().getForAllAddresses();
-  }
+  List<Color> get _primaryColors => kSelectedAppNetworkWithAssets!
+      .network.blockChain.animateGradientPrimaryColors;
+
+  List<Color> get _secondaryColors => kSelectedAppNetworkWithAssets!
+      .network.blockChain.animateGradientSecondaryColors;
 
   @override
   Widget build(BuildContext context) {
@@ -32,16 +30,8 @@ class _AccountCardState extends State<AccountCard> {
         primaryEnd: Alignment.bottomLeft,
         secondaryBegin: Alignment.bottomRight,
         secondaryEnd: Alignment.topRight,
-        primaryColors: const [
-          Color.fromARGB(255, 2, 46, 16),
-          Color.fromARGB(255, 11, 206, 60),
-          Color.fromARGB(255, 70, 235, 111),
-        ],
-        secondaryColors: const [
-          Color.fromARGB(255, 6, 21, 140),
-          Color.fromARGB(255, 10, 90, 195),
-          Color.fromARGB(255, 24, 231, 217),
-        ],
+        primaryColors: _primaryColors,
+        secondaryColors: _secondaryColors,
         child: Stack(
           alignment: Alignment.centerRight,
           children: [
@@ -67,14 +57,16 @@ class _AccountCardState extends State<AccountCard> {
                 top: 15.0,
                 right: 10.0,
                 bottom: 15.0,
-                left: 25.0,
               ),
               child: const Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  BalanceAndAddressWidgetZenonTools(),
+                  BalanceAndAddressWidget(),
                   kVerticalSpacer,
-                  DashboardNavigationContainer(),
+                  Padding(
+                    padding: EdgeInsets.only(left: 15.0),
+                    child: DashboardNavigationContainer(),
+                  ),
                 ],
               ),
             ),
@@ -94,67 +86,63 @@ class DashboardNavigationContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              if (kSelectedNetwork == AppNetwork.znn)
-                DashboardNavigationButton(
-                  onClick: () {
-                    showPlasmaFusingScreen(context);
-                  },
-                  icon: Icon(
-                    Icons.flash_on,
-                    color: context.colorScheme.background,
-                    size: 20,
-                  ),
-                  text: AppLocalizations.of(context)!.fuse,
-                ),
-              DashboardNavigationButton(
-                onClick: () {
-                  showSendScreen(context: context);
-                },
-                icon: Icon(
-                  Icons.arrow_upward_sharp,
-                  color: context.colorScheme.background,
-                  size: 20,
-                ),
-                text: AppLocalizations.of(context)!.send,
-              ),
-              DashboardNavigationButton(
-                onClick: () {
-                  showModalBottomSheetWithBody(
-                    context: context,
-                    body: const ReceiveModalBottomSheet(),
-                  );
-                },
-                icon: Icon(
-                  Icons.arrow_downward_sharp,
-                  color: context.colorScheme.background,
-                  size: 20,
-                ),
-                text: AppLocalizations.of(context)!.receiveButton,
-              ),
-            ],
+        if (BlockChain.nom.isSelected)
+          DashboardNavigationButton(
+            onClick: () {
+              showPlasmaFusingScreen(context);
+            },
+            iconData: Icons.flash_on,
+            text: AppLocalizations.of(context)!.fuse,
           ),
+        DashboardNavigationButton(
+          onClick: () {
+            switch (kSelectedAppNetworkWithAssets!.network.blockChain) {
+              case BlockChain.btc:
+                showSendBtcScreen(context: context);
+              case BlockChain.evm:
+                showSendEthScreen(context: context);
+              case BlockChain.nom:
+                showSendScreen(context: context);
+            }
+          },
+          iconData: Icons.arrow_upward_sharp,
+          text: AppLocalizations.of(context)!.send,
         ),
-        Expanded(
-          child: Container(),
+        DashboardNavigationButton(
+          onClick: () {
+            showModalBottomSheetWithBody(
+              context: context,
+              body: const ReceiveModalBottomSheet(),
+            );
+          },
+          iconData: Icons.arrow_downward_sharp,
+          text: AppLocalizations.of(context)!.receiveButton,
         ),
       ],
+    );
+  }
+
+  // TODO: to be used in a future release
+  DashboardNavigationButton _buildBuyButton(BuildContext context) {
+    return DashboardNavigationButton(
+      onClick: () {
+        showBuyScreen(context);
+      },
+      iconData: Icons.wallet,
+      text: AppLocalizations.of(context)!.buy,
     );
   }
 }
 
 class DashboardNavigationButton extends StatelessWidget {
   final VoidCallback onClick;
-  final Icon icon;
+  final IconData iconData;
   final String text;
 
   const DashboardNavigationButton({
     super.key,
     required this.onClick,
-    required this.icon,
+    required this.iconData,
     required this.text,
   });
 
@@ -164,9 +152,13 @@ class DashboardNavigationButton extends StatelessWidget {
       children: [
         IconButton.filled(
           onPressed: onClick,
-          icon: icon,
+          icon: Icon(
+            iconData,
+            color: context.colorScheme.surface,
+            size: 20,
+          ),
           style: IconButton.styleFrom(
-            backgroundColor: context.colorScheme.secondary,
+            backgroundColor: Colors.white54,
           ),
         ),
         Text(
@@ -188,7 +180,7 @@ class ReceiveModalBottomSheet extends StatelessWidget {
       children: [
         Center(
           child: ReceiveQrImage(
-            data: getAddress(),
+            data: selectedAddress.hex,
             size: 180.0,
             token: kZnnCoin,
             context: context,
@@ -201,24 +193,28 @@ class ReceiveModalBottomSheet extends StatelessWidget {
           text: AppLocalizations.of(context)!.receiveModalWarning,
         ),
         Container(
-          padding: const EdgeInsets.only(left: 15.0),
+          padding: const EdgeInsets.only(
+            left: 15.0,
+            top: 15.0,
+            bottom: 15.0,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8.0),
-            color: context.colorScheme.surfaceVariant,
+            color: context.colorScheme.surfaceContainerHighest,
           ),
-          height: 50,
           child: Row(
             children: [
               Expanded(
                 child: Text(
-                  getAddress(),
+                  selectedAddress.hex,
                   style: context.textTheme.bodyLarge,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.justify,
                 ),
               ),
               CopyToClipboardButton(
-                text: getAddress(),
+                text: selectedAddress.hex,
               ),
             ],
           ),
@@ -229,7 +225,7 @@ class ReceiveModalBottomSheet extends StatelessWidget {
           ),
           label: Text(AppLocalizations.of(context)!.shareAddress),
           onPressed: () async {
-            await Share.share(getAddress());
+            await Share.share(selectedAddress.hex);
           },
         ),
       ].addSeparator(kVerticalSpacer),

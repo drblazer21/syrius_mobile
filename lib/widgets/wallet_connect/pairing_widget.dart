@@ -16,8 +16,8 @@ class PairingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String? iconUrl = pairingInfo.peerMetadata?.icons.first;
-    final String dAppName = pairingInfo.peerMetadata?.name ?? '';
-    final String dAppUrl = pairingInfo.peerMetadata?.url ?? '';
+    final String dAppName = pairingInfo.peerMetadata?.name ?? 'Unknown';
+    final String dAppUrl = pairingInfo.peerMetadata?.url ?? 'Unknown';
     final String pairingTopic = pairingInfo.topic;
     final Widget icon = iconUrl != null
         ? _buildIcon(imageUrl: iconUrl)

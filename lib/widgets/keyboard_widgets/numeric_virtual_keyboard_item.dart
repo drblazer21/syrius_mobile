@@ -53,7 +53,7 @@ class NumericVirtualKeyboardItem extends StatelessWidget {
       isZero ? '0' : text,
       style: context.textTheme.headlineLarge?.copyWith(
         color: isEnabled
-            ? context.colorScheme.onBackground
+            ? context.colorScheme.onSurface
             : context.colorScheme.outline,
       ),
     );
@@ -65,14 +65,14 @@ class NumericVirtualKeyboardItem extends StatelessWidget {
             Icons.face,
             size: 45,
             color: isEnabled
-                ? context.colorScheme.onBackground
+                ? context.colorScheme.onSurface
                 : context.colorScheme.outline,
           )
         : Icon(
             Icons.fingerprint,
             size: 45,
             color: isEnabled
-                ? context.colorScheme.onBackground
+                ? context.colorScheme.onSurface
                 : context.colorScheme.outline,
           );
   }

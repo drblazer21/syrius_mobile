@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logging/logging.dart';
-import 'package:stacked/stacked.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
 import 'package:syrius_mobile/main.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
@@ -40,19 +38,37 @@ class _AddStakingScreenState extends State<AddStakingScreen> {
 
   Duration get _defaultDuration => _durations[5];
 
+  final StakingOptionsBloc _stakingOptionsBloc = StakingOptionsBloc();
+
   @override
   void initState() {
     super.initState();
     _selectedDurationNotifier.value = _defaultDuration;
     refreshBalanceAndTx();
+    _stakingOptionsBloc.stream.listen(
+      (event) {
+        if (event != null) {
+          widget.stakingListViewModel!.refreshResults();
+          if (!mounted) return;
+          Navigator.pop(context);
+        }
+      },
+      onError: (error) {
+        if (!mounted) return;
+        sendNotificationError(
+          AppLocalizations.of(context)!.stakingGenerationError,
+          error,
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    _addressController.text = kSelectedAddress!;
+    _addressController.text = kSelectedAddress!.hex;
     return CustomAppbarScreen(
       appbarTitle: AppLocalizations.of(context)!.staking,
-      child: StreamBuilder<Map<String, AccountInfo>?>(
+      child: StreamBuilder<AccountInfo>(
         stream: sl.get<BalanceBloc>().stream,
         builder: (_, snapshot) {
           if (snapshot.hasError) {
@@ -62,11 +78,11 @@ class _AddStakingScreenState extends State<AddStakingScreen> {
             if (snapshot.hasData) {
               Logger('StakingOptions').log(Level.INFO, snapshot.data);
               _maxZnnAmount =
-                  snapshot.data![_addressController.text]!.getBalance(
+                  snapshot.data!.getBalance(
                 kZnnCoin.tokenStandard,
               );
               return _getWidgetBody(
-                snapshot.data![_addressController.text],
+                snapshot.data,
               );
             }
             return const SyriusLoadingWidget();
@@ -83,6 +99,7 @@ class _AddStakingScreenState extends State<AddStakingScreen> {
     _amountController.dispose();
     _amountFocusNode.dispose();
     _selectedDurationNotifier.dispose();
+    _stakingOptionsBloc.dispose();
     super.dispose();
   }
 
@@ -114,31 +131,8 @@ class _AddStakingScreenState extends State<AddStakingScreen> {
           ),
         ),
         kVerticalSpacer,
-        _getStakeForQsrViewModel(),
+        _getStakeForQsrButton(_stakingOptionsBloc),
       ],
-    );
-  }
-
-  Widget _getStakeForQsrViewModel() {
-    return ViewModelBuilder<StakingOptionsBloc>.reactive(
-      onViewModelReady: (model) {
-        model.stream.listen(
-          (event) {
-            if (event != null) {
-              widget.stakingListViewModel!.refreshResults();
-              Navigator.pop(context);
-            }
-          },
-          onError: (error) {
-            sendNotificationError(
-              AppLocalizations.of(context)!.stakingGenerationError,
-              error,
-            );
-          },
-        );
-      },
-      builder: (_, model, __) => _getStakeForQsrButton(model),
-      viewModelBuilder: () => StakingOptionsBloc(),
     );
   }
 
@@ -187,6 +181,7 @@ class _AddStakingScreenState extends State<AddStakingScreen> {
         stakeMinZnnAmount,
         canBeEqualToMin: true,
       ),
+      coins: [kZnnCoin],
       controller: _amountController,
       focusNode: _amountFocusNode,
       selectedToken: kZnnCoin,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
-import 'package:wallet_connect_uri_validator/wallet_connect_uri_validator.dart';
 
 class WalletConnectUriField extends StatefulWidget {
   const WalletConnectUriField({
@@ -65,7 +64,8 @@ class _WalletConnectUriFieldState extends State<WalletConnectUriField> {
   }
 
   String? _uriValidator(String? uri) {
-    if (WalletConnectUri.tryParse(uri ?? '') != null) {
+    final Uri? wcUri = Uri.tryParse(uri ?? '');
+    if (wcUri != null &&  wcUri.scheme == 'wc') {
       return null;
     } else {
       return 'URI invalid';

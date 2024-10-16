@@ -1,19 +1,18 @@
+import 'package:big_decimal/big_decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
 import 'package:syrius_mobile/main.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
-import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 
 class AssetListItem extends StatelessWidget {
   final Color iconColor;
   final Color bgColor;
   final String coinName;
-  final BigInt coinAmount;
+  final BigDecimal coinAmount;
   final double rate;
-  final double usdValue;
+  final BigDecimal usdValue;
 
   const AssetListItem({
     required this.bgColor,
@@ -27,10 +26,9 @@ class AssetListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isHideBalance = sharedPrefsService.get<bool>(
+    final bool isHideBalance = sharedPrefs.getBool(
       kIsHideBalanceKey,
-      defaultValue: false,
-    )!;
+    ) ?? false;
 
     return StreamBuilder<bool>(
       initialData: isHideBalance,
@@ -70,13 +68,13 @@ class AssetListItem extends StatelessWidget {
         ),
         Tooltip(
           message: NumberFormat().format(
-            usdValue,
+            usdValue.toDouble(),
           ),
           child: Text(
             hideBalance
                 ? "••••••"
                 : "${kSelectedCurrency.symbol}${NumberFormat.compact().format(
-                    usdValue,
+                    usdValue.toDouble(),
                   )}",
           ),
         ),
@@ -88,8 +86,6 @@ class AssetListItem extends StatelessWidget {
     required BuildContext context,
     required bool hideBalance,
   }) {
-    final double amount = double.parse(coinAmount.addDecimals(coinDecimals));
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -98,13 +94,13 @@ class AssetListItem extends StatelessWidget {
         ),
         Tooltip(
           message: NumberFormat().format(
-            amount,
+            coinAmount.toDouble(),
           ),
           child: Text(
             hideBalance
                 ? "••••••"
                 : NumberFormat.compact().format(
-                    amount,
+                    coinAmount.toDouble(),
                   ),
           ),
         ),

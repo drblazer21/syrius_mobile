@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logging/logging.dart';
-import 'package:stacked/stacked.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
 import 'package:syrius_mobile/main.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
@@ -29,6 +27,58 @@ class PillarDetailScreen extends StatefulWidget {
 
 class _PillarDetailScreenState extends State<PillarDetailScreen> {
   String? _currentlyDelegatingToPillar;
+
+  final DelegateButtonBloc _delegateButtonBloc = DelegateButtonBloc();
+  final UndelegateButtonBloc _undelegateButtonBloc = UndelegateButtonBloc();
+
+
+  @override
+  void dispose() {
+    _delegateButtonBloc.dispose();
+    _undelegateButtonBloc.dispose();
+    super.dispose();
+  }
+
+
+  @override
+  void initState() {
+    super.initState();
+    _delegateButtonBloc.stream.listen(
+          (event) {
+        if (event != null) {
+          widget.delegationInfoBloc.updateStream();
+          setState(() {
+            _currentlyDelegatingToPillar = null;
+          });
+        }
+      },
+      onError: (error) {
+        if (!mounted) return;
+        sendNotificationError(
+          AppLocalizations.of(context)!.delegateError,
+          error,
+        );
+        setState(() {
+          _currentlyDelegatingToPillar = null;
+        });
+      },
+    );
+    _undelegateButtonBloc.stream.listen(
+          (event) async {
+        if (event != null) {
+          await widget.delegationInfoBloc.updateStream();
+          widget.bloc.refreshResults();
+        }
+      },
+      onError: (error) {
+        if (!mounted) return;
+        sendNotificationError(
+          AppLocalizations.of(context)!.undelegateError,
+          error,
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +105,7 @@ class _PillarDetailScreenState extends State<PillarDetailScreen> {
   }
 
   String getWeight() {
-    return widget.pillarInfo.weight.addDecimals(
+    return widget.pillarInfo.weight.toStringWithDecimals(
       kZnnCoin.decimals,
     );
   }
@@ -69,33 +119,9 @@ class _PillarDetailScreenState extends State<PillarDetailScreen> {
       visible: accountInfo.znn()! >= kMinDelegationAmount &&
           (_currentlyDelegatingToPillar == null ||
               _currentlyDelegatingToPillar == pillarInfo.name),
-      child: ViewModelBuilder<DelegateButtonBloc>.reactive(
-        onViewModelReady: (model) {
-          model.stream.listen(
-            (event) {
-              if (event != null) {
-                widget.delegationInfoBloc.updateStream();
-                setState(() {
-                  _currentlyDelegatingToPillar = null;
-                });
-              }
-            },
-            onError: (error) {
-              sendNotificationError(
-                AppLocalizations.of(context)!.delegateError,
-                error,
-              );
-              setState(() {
-                _currentlyDelegatingToPillar = null;
-              });
-            },
-          );
-        },
-        builder: (_, model, __) => _getDelegateButton(
-          pillarInfo,
-          model,
-        ),
-        viewModelBuilder: () => DelegateButtonBloc(),
+      child: _getDelegateButton(
+        pillarInfo,
+        _delegateButtonBloc,
       ),
     );
   }
@@ -113,31 +139,6 @@ class _PillarDetailScreenState extends State<PillarDetailScreen> {
         Navigator.pop(context);
       },
       text: AppLocalizations.of(context)!.delegateAction,
-    );
-  }
-
-  Widget _getUndelegateButtonViewModel(PillarsListBloc pillarsModel) {
-    return ViewModelBuilder<UndelegateButtonBloc>.reactive(
-      onViewModelReady: (model) {
-        model.stream.listen(
-          (event) async {
-            if (event != null) {
-              await widget.delegationInfoBloc.updateStream();
-              widget.bloc.refreshResults();
-            }
-          },
-          onError: (error) {
-            sendNotificationError(
-              AppLocalizations.of(context)!.undelegateError,
-              error,
-            );
-          },
-        );
-      },
-      builder: (_, model, __) => _getUndelegateButton(
-        model,
-      ),
-      viewModelBuilder: () => UndelegateButtonBloc(),
     );
   }
 
@@ -159,7 +160,7 @@ class _PillarDetailScreenState extends State<PillarDetailScreen> {
     PillarInfo pillarInfo,
     PillarsListBloc pillarsModel,
   ) {
-    return StreamBuilder<Map<String?, AccountInfo>?>(
+    return StreamBuilder<AccountInfo>(
       stream: sl.get<BalanceBloc>().stream,
       builder: (_, snapshot) {
         if (snapshot.hasError) {
@@ -171,7 +172,7 @@ class _PillarDetailScreenState extends State<PillarDetailScreen> {
             return _getDelegateButtonViewModel(
               pillarInfo,
               pillarsModel,
-              snapshot.data![kSelectedAddress]!,
+              snapshot.data!,
             );
           }
           return const SyriusLoadingWidget();
@@ -198,7 +199,7 @@ class _PillarDetailScreenState extends State<PillarDetailScreen> {
         if (widget.delegationInfo != null)
           Visibility(
             visible: pillarInfo.name == widget.delegationInfo!.name,
-            child: _getUndelegateButtonViewModel(model),
+            child: _getUndelegateButton(_undelegateButtonBloc),
           ),
       ],
     );

@@ -1,8 +1,12 @@
 import 'package:otp/otp.dart';
+import 'package:syrius_mobile/database/export.dart';
 import 'package:syrius_mobile/utils/utils.dart';
-import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 
-const Algorithm _kOtpAlgorithm = Algorithm.SHA256;
+/// SHA1 is the default algorithm used by Google Authenticator. Giving that we
+/// allow the user to manually input the secret key, and that the Google
+/// Authenticator doesn't allow the user to change the algorithm, we have to
+/// use the same default algorithm.
+const Algorithm _kOtpAlgorithm = Algorithm.SHA1;
 const int _kOtpDigits = 6;
 const int _kOtpRefreshIntervalInSeconds = 30;
 
@@ -11,7 +15,7 @@ class OTPService {
     required String secretKey,
   }) {
     final String accountName =
-        Address.parse(kDefaultAddressList.first).toShortString();
+        kDefaultAddressList.first.toZnnAddress().toShortString();
 
     const String issuer = 'syrius-mobile';
 

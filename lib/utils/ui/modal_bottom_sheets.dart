@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 
@@ -8,7 +9,9 @@ Future showModalBottomSheetWithButtons({
   required BuildContext context,
   Widget? dialogImage,
   required String title,
+  bool isDismissible = true,
   String? subTitle,
+  Widget? subTitleWidget,
   String btn1Text = '',
   String btn2Text = '',
   VoidCallback? btn1Action,
@@ -18,6 +21,7 @@ Future showModalBottomSheetWithButtons({
 }) {
   return showModalBottomSheet(
     context: context,
+    isDismissible: isDismissible,
     isScrollControlled: true,
     showDragHandle: true,
     builder: (_) {
@@ -63,6 +67,7 @@ Future showModalBottomSheetWithButtons({
                     textAlign: TextAlign.center,
                   ),
                 ),
+              if (subTitleWidget != null) subTitleWidget,
               Row(
                 children: [
                   if (secondButton != null) Expanded(child: secondButton),
@@ -87,15 +92,11 @@ Future<dynamic> showModalBottomSheetWithBody({
   required BuildContext context,
   required Widget body,
   String? title,
-  Color? backgroundColor,
-  Color? barrierColor,
 }) async {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    barrierColor: barrierColor,
-    backgroundColor: backgroundColor ?? Colors.black87,
     builder: (context) => SingleChildScrollView(
       child: Padding(
         padding: EdgeInsets.only(
@@ -121,5 +122,38 @@ Future<dynamic> showModalBottomSheetWithBody({
         ),
       ),
     ),
+  );
+}
+
+Future<dynamic> showTransactionInProgressBottomSheet({
+  required BuildContext context,
+}) async {
+  return showModalBottomSheetWithBody(
+    context: context,
+    body: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Icon(
+          MdiIcons.check,
+          size: 50.0,
+        ),
+        Text(
+          'Your transaction is being processed by the network. '
+          'It may take a few minutes for the transaction to confirm.',
+          style: context.textTheme.titleSmall?.copyWith(
+            color: context.colorScheme.secondary,
+          ),
+        ),
+        kVerticalSpacer,
+        FilledButton(
+          onPressed: () {
+            Navigator.pop(context);
+            FocusScope.of(context).requestFocus(FocusNode());
+          },
+          child: const Text('Continue'),
+        ),
+      ],
+    ),
+    title: 'Transaction in progress',
   );
 }

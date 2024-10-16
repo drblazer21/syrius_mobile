@@ -1,56 +1,51 @@
+import 'package:big_decimal/big_decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:syrius_mobile/model/model.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 
 class AssetsZenonToolsPriceInfo extends StatelessWidget {
-  final AccountInfo accountInfo;
-  final ZenonToolsPriceInfo zenonToolsPriceInfo;
+  final BalanceInfoListItem balanceItem;
+  final PriceInfo zenonToolsPriceInfo;
 
   const AssetsZenonToolsPriceInfo({
-    required this.accountInfo,
+    required this.balanceItem,
     required this.zenonToolsPriceInfo,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    final BigInt znnAmount = accountInfo.getBalance(
-      kZnnCoin.tokenStandard,
-    );
-    final BigInt qsrAmount = accountInfo.getBalance(
-      kQsrCoin.tokenStandard,
-    );
+    final Token token = balanceItem.token!;
+    final Color iconColor = getTokenColor(token);
+    final Color bgColor = iconColor.withOpacity(0.2);
+    final String coinName = token.name;
 
-    final double znnPriceInUsd = zenonToolsPriceInfo.znnCurrentPriceInUsd;
-    final double qsrPriceInUsd = zenonToolsPriceInfo.qsrCurrentPriceInUsd;
+    final BigDecimal coinAmount =
+        balanceItem.balance!.addDecimals(token.decimals);
 
-    final double znnValueInUsd =
-        double.parse(znnAmount.addDecimals(coinDecimals)) * znnPriceInUsd;
-    final double qsrValueInUsd =
-        double.parse(qsrAmount.addDecimals(coinDecimals)) * qsrPriceInUsd;
+    final double rate;
 
-    return Column(
-      children: [
-        AssetListItem(
-          iconColor: znnColor,
-          bgColor: znnColor.withOpacity(0.2),
-          coinAmount: znnAmount,
-          coinName: kZnnCoin.symbol,
-          usdValue: znnValueInUsd,
-          rate: znnPriceInUsd,
-        ),
-        AssetListItem(
-          iconColor: qsrColor,
-          bgColor: qsrColor.withOpacity(0.2),
-          coinAmount: qsrAmount,
-          coinName: kQsrCoin.symbol,
-          usdValue: qsrValueInUsd,
-          rate: qsrPriceInUsd,
-        ),
-      ],
+    if (kSelectedAppNetworkWithAssets!.network.type == NetworkType.testnet) {
+      rate = 0.0;
+    } else if (token.tokenStandard == znnZts) {
+      rate = zenonToolsPriceInfo.znn;
+    } else if (token.tokenStandard == qsrZts) {
+      rate = zenonToolsPriceInfo.qsr;
+    } else {
+      rate = 0.0;
+    }
+
+    final BigDecimal usdValue = coinAmount * BigDecimal.parse(rate.toString());
+
+    return AssetListItem(
+      bgColor: bgColor,
+      coinAmount: coinAmount,
+      coinName: coinName,
+      iconColor: iconColor,
+      rate: rate,
+      usdValue: usdValue,
     );
   }
 }

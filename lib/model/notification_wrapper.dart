@@ -1,4 +1,4 @@
-import 'package:syrius_mobile/model/model.dart';
+import 'package:syrius_mobile/database/export.dart';
 
 class GroupedNotifications {
   final DateTime notificationDate;

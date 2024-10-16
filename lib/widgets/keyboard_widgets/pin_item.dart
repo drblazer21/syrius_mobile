@@ -36,7 +36,7 @@ class PinItem extends StatelessWidget {
         ),
         child: CircleAvatar(
           backgroundColor: (text != null && text!.isNotEmpty)
-              ? context.colorScheme.onBackground
+              ? context.colorScheme.onSurface
               : Colors.transparent,
           radius: 5.0,
           child: (text == null)

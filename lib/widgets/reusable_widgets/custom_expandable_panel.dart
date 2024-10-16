@@ -29,7 +29,7 @@ class _CustomExpandablePanelState extends State<CustomExpandablePanel> {
       children: [
         ExpansionPanel(
           isExpanded: isExpanded,
-          backgroundColor: context.colorScheme.background,
+          backgroundColor: context.colorScheme.surface,
           headerBuilder: (BuildContext context, bool isExpanded) {
             return ListTile(
               title: Text(

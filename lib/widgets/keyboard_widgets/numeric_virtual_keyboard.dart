@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 
@@ -172,7 +172,7 @@ class NumericVirtualKeyboardState extends State<NumericVirtualKeyboard> {
       _isInErrorState = true;
       _pinNumbers.clear();
       _animationController.forward(from: 0.0);
-      Vibrate.vibrate();
+      HapticFeedback.vibrate();
     });
   }
 }

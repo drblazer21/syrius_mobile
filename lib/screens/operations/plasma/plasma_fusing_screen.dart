@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logging/logging.dart';
-import 'package:stacked/stacked.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/screens/screens.dart';
-import 'package:syrius_mobile/utils/extensions/extensions.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
@@ -24,7 +22,7 @@ class _PlasmaFusingScreenState extends State<PlasmaFusingScreen> {
   final TextEditingController _recipientController = TextEditingController();
   final FocusNode _amountFocusNode = FocusNode();
   final FocusNode _recipientFocusNode = FocusNode();
-  PlasmaOptionsBloc? _plasmaOptionsBloc;
+  final PlasmaOptionsBloc _plasmaOptionsBloc = PlasmaOptionsBloc();
 
   bool isButtonEnabled(AccountInfo accountInfo) =>
       _hasBalance(accountInfo) && _isInputValid(accountInfo);
@@ -32,7 +30,22 @@ class _PlasmaFusingScreenState extends State<PlasmaFusingScreen> {
   @override
   void initState() {
     super.initState();
-    _recipientController.text = kDefaultAddressList.first;
+    _recipientController.text = kDefaultAddressList.first.hex;
+    _plasmaOptionsBloc.stream.listen(
+      (event) {
+        if (event != null) {
+          sl.get<PlasmaStatsBloc>().get();
+          sl.get<PlasmaListBloc>().refreshResults();
+        }
+      },
+      onError: (error) {
+        if (!mounted) return;
+        sendNotificationError(
+          AppLocalizations.of(context)!.plasmaGenerationError,
+          error,
+        );
+      },
+    );
   }
 
   @override
@@ -40,7 +53,7 @@ class _PlasmaFusingScreenState extends State<PlasmaFusingScreen> {
     return CustomAppbarScreen(
       appbarTitle: AppLocalizations.of(context)!.plasmaScreenTitle,
       withLateralPadding: false,
-      child: StreamBuilder<Map<String, AccountInfo>?>(
+      child: StreamBuilder<AccountInfo>(
         stream: sl.get<BalanceBloc>().stream,
         builder: (_, snapshot) {
           if (snapshot.hasError) {
@@ -51,7 +64,7 @@ class _PlasmaFusingScreenState extends State<PlasmaFusingScreen> {
               Logger('PlasmaFusingPage').log(Level.INFO, snapshot.data);
               return _getBody(
                 context,
-                snapshot.data![kSelectedAddress!]!,
+                snapshot.data!,
               );
             }
             return const SyriusLoadingWidget();
@@ -68,7 +81,7 @@ class _PlasmaFusingScreenState extends State<PlasmaFusingScreen> {
     _amountController.dispose();
     _amountFocusNode.dispose();
     _recipientFocusNode.dispose();
-    _plasmaOptionsBloc?.dispose();
+    _plasmaOptionsBloc.dispose();
     super.dispose();
   }
 
@@ -92,7 +105,7 @@ class _PlasmaFusingScreenState extends State<PlasmaFusingScreen> {
         ),
         Padding(
           padding: context.listTileTheme.contentPadding!,
-          child: _buildFuseBlocWithWidget(context, accountInfo),
+          child: _buildFuseButton(accountInfo, context),
         ),
       ],
     );
@@ -113,6 +126,7 @@ class _PlasmaFusingScreenState extends State<PlasmaFusingScreen> {
         fuseMinQsrAmount,
         canBeEqualToMin: true,
       ),
+      coins: [kQsrCoin],
       controller: _amountController,
       focusNode: _amountFocusNode,
       recipientFocusNode: _recipientFocusNode,
@@ -143,35 +157,6 @@ class _PlasmaFusingScreenState extends State<PlasmaFusingScreen> {
       fillColor: context.colorScheme.primaryContainer,
       textColor: context.colorScheme.onPrimaryContainer,
       text: AppLocalizations.of(context)!.fusePlasmaDescription,
-    );
-  }
-
-  Widget _buildFuseBlocWithWidget(
-    BuildContext context,
-    AccountInfo accountInfo,
-  ) {
-    return ViewModelBuilder<PlasmaOptionsBloc>.reactive(
-      onViewModelReady: (model) {
-        _plasmaOptionsBloc = model;
-        model.stream.listen(
-          (event) {
-            if (event != null) {
-              sl.get<PlasmaStatsBloc>().get();
-              sl.get<PlasmaListBloc>().refreshResults();
-            }
-          },
-          onError: (error) {
-            sendNotificationError(
-              AppLocalizations.of(context)!.plasmaGenerationError,
-              error,
-            );
-          },
-        );
-      },
-      builder: (_, model, __) {
-        return _buildFuseButton(accountInfo, context);
-      },
-      viewModelBuilder: () => PlasmaOptionsBloc(),
     );
   }
 
@@ -230,7 +215,7 @@ class _PlasmaFusingScreenState extends State<PlasmaFusingScreen> {
           ...<Widget>[
             _buildBottomSheetInfoRow(
               AppLocalizations.of(context)!.fromAddress,
-              shortenWalletAddress(kSelectedAddress!),
+              shortenWalletAddress(kSelectedAddress!.hex),
             ),
             _buildBottomSheetInfoRow(
               AppLocalizations.of(context)!.beneficiary,
@@ -266,7 +251,7 @@ class _PlasmaFusingScreenState extends State<PlasmaFusingScreen> {
         color: qsrColor,
         text: AppLocalizations.of(context)!.confirm,
         onPressed: () async {
-          _plasmaOptionsBloc?.generatePlasma(
+          _plasmaOptionsBloc.generatePlasma(
             _recipientController.text,
             _amountController.text.extractDecimals(coinDecimals),
           );

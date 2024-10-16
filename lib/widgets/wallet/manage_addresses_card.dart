@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
+import 'package:syrius_mobile/database/export.dart';
+import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 import 'package:syrius_mobile/widgets/widgets.dart';
 
 class ManageAddressesCard extends StatefulWidget {
   const ManageAddressesCard({
     required this.address,
+    required this.onChangedLabel,
     required this.onPressed,
     super.key,
   });
 
-  final String address;
-  final Future<void> Function(String) onPressed;
+  final AppAddress address;
+  final VoidCallback onChangedLabel;
+  final Future<void> Function(AppAddress) onPressed;
 
   @override
   State<ManageAddressesCard> createState() => _ManageAddressesCardState();
@@ -26,7 +29,8 @@ class _ManageAddressesCardState extends State<ManageAddressesCard> {
   bool _isLabelEditable = false;
 
   String get _newLabel => _newLabelController.text;
-  String get _currentLabel => kAddressLabelMap[widget.address] ?? 'No label';
+
+  String get _currentLabel => widget.address.label;
 
   @override
   void initState() {
@@ -42,11 +46,11 @@ class _ManageAddressesCardState extends State<ManageAddressesCard> {
     final EdgeInsetsGeometry contentPadding =
         context.listTileTheme.contentPadding! / 2;
 
-    return RadioListTile(
+    return RadioListTile<AppAddress>(
       contentPadding: contentPadding,
       value: widget.address,
-      groupValue: kSelectedAddress,
-      onChanged: (String? value) {
+      groupValue: selectedAddress,
+      onChanged: (AppAddress? value) {
         if (value != null) {
           widget.onPressed(value);
         } else {
@@ -72,11 +76,11 @@ class _ManageAddressesCardState extends State<ManageAddressesCard> {
       children: [
         Flexible(
           child: Text(
-            widget.address,
+            widget.address.hex,
           ),
         ),
         CopyToClipboardButton(
-          text: widget.address,
+          text: widget.address.hex,
         ),
       ],
     );
@@ -123,6 +127,7 @@ class _ManageAddressesCardState extends State<ManageAddressesCard> {
         IconButton(
           onPressed: () {
             setState(() {
+              _newLabelController.text = _currentLabel;
               _isLabelEditable = false;
             });
           },
@@ -147,11 +152,16 @@ class _ManageAddressesCardState extends State<ManageAddressesCard> {
 
   Future<void> _onChangeButtonPressed() async {
     try {
-      await Hive.box(kAddressLabelsBox).put(
-        widget.address,
-        _newLabel,
+      final AppAddress updatedAppAddress = widget.address.copyWith(
+        label: _newLabel,
       );
-      kAddressLabelMap[widget.address] = _newLabel;
+
+      if (selectedAddress.id == updatedAppAddress.id) {
+        selectedAddress = updatedAppAddress;
+      }
+      await db.appAddressesDao.updateData(
+        updatedAppAddress,
+      );
       if (!mounted) return;
       Provider.of<SelectedAddressNotifier>(
         context,
@@ -177,7 +187,8 @@ class _ManageAddressesCardState extends State<ManageAddressesCard> {
   String? _newLabelValidator(BuildContext context) {
     if (_newLabel.isNotEmpty) {
       if (_newLabel.length <= kAddressLabelMaxLength) {
-        if (!kAddressLabelMap.containsValue(_newLabel)) {
+        final Iterable<String> labels = addressList.map((e) => e.label);
+        if (!labels.contains(_newLabel)) {
           return null;
         } else {
           return AppLocalizations.of(context)!.newLabelAlreadyExists;

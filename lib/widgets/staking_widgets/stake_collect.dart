@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logging/logging.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
+import 'package:syrius_mobile/database/database.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/model/model.dart';
 import 'package:syrius_mobile/utils/utils.dart';
@@ -79,10 +80,9 @@ class _StakeCollectState extends State<StakeCollect> {
   }
 
   void _sendCreatedBlockNotification() {
-    sl.get<NotificationsBloc>().addNotification(
-          WalletNotification(
+    sl.get<NotificationsService>().addNotification(
+          WalletNotificationsCompanion.insert(
             title: 'Sent collect account-block',
-            timestamp: DateTime.now().millisecondsSinceEpoch,
             details: 'Created account-block for receiving the staking rewards',
             type: NotificationType.paymentSent,
           ),

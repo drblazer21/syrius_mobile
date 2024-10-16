@@ -20,29 +20,25 @@ class _OtpManagementScreenState extends State<OtpManagementScreen> {
   @override
   void initState() {
     super.initState();
-    _useOtpForTxConfirmation = sharedPrefsService.get(
+    _useOtpForTxConfirmation = sharedPrefs.getBool(
       kUseOtpForTxConfirmationKey,
-      defaultValue: false,
-    )!;
-    _useOtpForRevealingSeed = sharedPrefsService.get(
+    ) ?? false;
+    _useOtpForRevealingSeed = sharedPrefs.getBool(
       kUseOtpForRevealingSeedKey,
-      defaultValue: false,
-    )!;
-    _useOtpForModifyingBiometryUse = sharedPrefsService.get<bool>(
+    ) ?? false;
+    _useOtpForModifyingBiometryUse = sharedPrefs.getBool(
       kUseOtpForModifyingBiometryUseKey,
-      defaultValue: false,
-    )!;
-    _useOtpForDeletingWallet = sharedPrefsService.get<bool>(
+    ) ?? false;
+    _useOtpForDeletingWallet = sharedPrefs.getBool(
       kUseOtpForDeletingWalletKey,
-      defaultValue: false,
-    )!;
+    ) ?? false;
   }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
+    return PopScope<Object?>(
       canPop: false,
-      onPopInvoked: (bool didPop) {
+      onPopInvokedWithResult: (bool didPop, Object? _) {
         if (didPop) {
           return;
         } else {
@@ -75,8 +71,8 @@ class _OtpManagementScreenState extends State<OtpManagementScreen> {
     return Switch(
       value: _useOtpForTxConfirmation,
       onChanged: (bool value) {
-        sharedPrefsService
-            .put(
+        sharedPrefs
+            .setBool(
               kUseOtpForTxConfirmationKey,
               value,
             )
@@ -95,8 +91,8 @@ class _OtpManagementScreenState extends State<OtpManagementScreen> {
     return Switch(
       value: _useOtpForRevealingSeed,
       onChanged: (bool value) {
-        sharedPrefsService
-            .put(
+        sharedPrefs
+            .setBool(
               kUseOtpForRevealingSeedKey,
               value,
             )
@@ -178,8 +174,8 @@ class _OtpManagementScreenState extends State<OtpManagementScreen> {
     return Switch(
       value: _useOtpForModifyingBiometryUse,
       onChanged: (bool value) {
-        sharedPrefsService
-            .put(
+        sharedPrefs
+            .setBool(
               kUseOtpForModifyingBiometryUseKey,
               value,
             )
@@ -198,8 +194,8 @@ class _OtpManagementScreenState extends State<OtpManagementScreen> {
     return Switch(
       value: _useOtpForDeletingWallet,
       onChanged: (bool value) {
-        sharedPrefsService
-            .put(
+        sharedPrefs
+            .setBool(
               kUseOtpForDeletingWalletKey,
               value,
             )

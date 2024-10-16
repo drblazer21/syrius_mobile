@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:syrius_mobile/database/export.dart';
 import 'package:syrius_mobile/model/model.dart';
 import 'package:syrius_mobile/utils/utils.dart';
 
 Future<void> showNotificationSnackBar(
   BuildContext context, {
-  WalletNotification? walletNotification,
+  WalletNotificationsCompanion? walletNotification,
   String? content,
   Duration? duration,
 }) async {
@@ -28,7 +29,7 @@ Future<void> showNotificationSnackBar(
           )
         : null,
     content: Text(
-      walletNotification?.title ?? (content ?? ''),
+      walletNotification?.title.value ?? (content ?? ''),
     ),
   );
 
@@ -37,17 +38,17 @@ Future<void> showNotificationSnackBar(
 
 VoidCallback? _actionOnPressed({
   required BuildContext context,
-  required WalletNotification walletNotification,
+  required WalletNotificationsCompanion walletNotification,
 }) {
-  if (walletNotification.type == NotificationType.stakeSuccess) {
+  if (walletNotification.type.value == NotificationType.stakeSuccess) {
     return () {
       showStakingScreen(context);
     };
-  } else if (walletNotification.type == NotificationType.delegateSuccess) {
+  } else if (walletNotification.type.value == NotificationType.delegateSuccess) {
     return () {
       showDelegateScreen(context);
     };
-  } else if (walletNotification.type == NotificationType.plasmaSuccess) {
+  } else if (walletNotification.type.value == NotificationType.plasmaSuccess) {
     return () {
       showPlasmaListScreen(context);
     };

@@ -1,5 +1,6 @@
+import 'package:drift/drift.dart';
 import 'package:flutter/services.dart';
-import 'package:syrius_mobile/blocs/blocs.dart';
+import 'package:syrius_mobile/database/database.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/model/model.dart';
 import 'package:syrius_mobile/utils/utils.dart';
@@ -17,11 +18,12 @@ void copyToClipboard({
     (value) {
       afterCopying?.call();
       if (sendSuccessNotification) {
-        sl.get<NotificationsBloc>().addNotification(
-              WalletNotification(
-                timestamp: DateTime.now().millisecondsSinceEpoch,
+        sl.get<NotificationsService>().addNotification(
+              WalletNotificationsCompanion.insert(
+                type: NotificationType.copiedToClipboard,
                 title: 'Successfully copied to clipboard',
-                isRead: true,
+                details: '',
+                isRead: const Value(true),
               ),
             );
       }

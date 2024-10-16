@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:syrius_mobile/btc/btc.dart';
 import 'package:syrius_mobile/main.dart';
+import 'package:syrius_mobile/model/model.dart';
 import 'package:syrius_mobile/utils/utils.dart';
+import 'package:web3dart/web3dart.dart';
 import 'package:znn_sdk_dart/znn_sdk_dart.dart';
 
 Future<KeyStore?> getKeyStore() async {
@@ -35,7 +38,7 @@ Future<void> saveEntropy(String entropy) => secureStorageUtil.write(
     );
 
 Future<KeyPair> getKeyPairFromAddress(String address) async {
-  final int keyPairIndex = kDefaultAddressList.indexOf(address);
+  final int keyPairIndex = kDefaultAddressList.indexOf(findAppAddress(address));
 
   final KeyPair keyPair = await getKeyPair(keyPairIndex);
 
@@ -61,4 +64,30 @@ Future<Address> generateAddressByIndex(int index) async {
   final Address newAddress = await newKeyPair.getAddress();
 
   return newAddress;
+}
+
+Future<String> generateNewAddressByIndex({required int index}) async {
+  final KeyPair newKeyPair = await getKeyPair(index);
+
+  switch (kSelectedAppNetworkWithAssets!.network.blockChain) {
+    case BlockChain.btc:
+      final NetworkType networkType =
+          kSelectedAppNetworkWithAssets!.network.type;
+
+      switch (networkType) {
+        case NetworkType.mainnet:
+          return await generateTaprootAddress(index: index);
+        case NetworkType.testnet:
+          return await generateBtcTestnetAddress(index: index);
+      }
+    case BlockChain.evm:
+      final Credentials credentials = await generateCredentialsByIndex(
+        index: index,
+      );
+      final EthereumAddress ethereumAddress = credentials.address;
+      return ethereumAddress.hex;
+    case BlockChain.nom:
+      final Address znnAddress = await newKeyPair.address;
+      return znnAddress.toString();
+  }
 }

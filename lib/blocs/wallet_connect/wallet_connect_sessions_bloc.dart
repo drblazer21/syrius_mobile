@@ -2,7 +2,7 @@ import 'package:logging/logging.dart';
 import 'package:syrius_mobile/blocs/blocs.dart';
 import 'package:syrius_mobile/main.dart';
 import 'package:syrius_mobile/services/services.dart';
-import 'package:walletconnect_flutter_v2/walletconnect_flutter_v2.dart';
+import 'package:walletconnect_flutter_v2/walletconnect_flutter_v2.dart' hide Level, Logger;
 
 class WalletConnectSessionsBloc extends InfiniteScrollBloc<SessionData> {
   WalletConnectSessionsBloc() : super();
